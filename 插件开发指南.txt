@@ -1,0 +1,956 @@
+插件开发指南 · Vibe Runtime 2.1
+
+目标：不改宿主代码，也能做任何东西。
+本文档基于运行时 2.1（API_VERSION = "2.0"），涵盖插件目录结构、manifest 字段、入口规范、完整 Host API、窗口尺寸与滚动控制。
+
+---
+
+目录
+
+1. 快速开始
+2. 目录结构
+3. manifest.json 参考
+4. 入口文件
+5. Host API 参考
+   · 基础信息 & 通知
+   · assets · 资源解析
+   · image · 图片
+   · video · 视频
+   · audio · 音频
+   · text · 文本
+   · ui · DOM 工具
+   · scroll · 滚动控制
+   · storage · 持久化
+   · events · 本地事件总线
+   · close · 请求关闭
+6. 窗口尺寸与滚动
+7. 错误处理
+8. 完整示例插件
+9. 调试技巧
+10. 常见问题
+
+---
+
+1. 快速开始
+
+创建一个最小插件只需三个文件：
+
+```
+installed/
+└── hello-world/
+    ├── manifest.json
+    └── main.js
+```
+
+manifest.json
+
+```json
+{
+  "id": "hello-world",
+  "name": "Hello World",
+  "version": "1.0.0",
+  "apiVersion": "2.0",
+  "author": "你的名字",
+  "description": "一个最简单的示例插件。",
+  "entry": "main.js"
+}
+```
+
+main.js
+
+```js
+export default async function (plugin) {
+  const h1 = document.createElement('h1');
+  h1.textContent = '👋 Hello, Vibe!';
+  h1.style.cssText = 'font-family:sans-serif;padding:32px;';
+
+  plugin.ui.mount(h1);
+  plugin.toast('插件已加载', 'info');
+}
+```
+
+放进 installed/hello-world/，刷新页面 → 打开 Plugin Center → 点一下你的插件。
+
+---
+
+2. 目录结构
+
+```
+installed/
+└── my-plugin/                ← 目录名即 _folder（可以和 id 不同）
+    ├── manifest.json         ← 必需
+    ├── main.js               ← 必需（manifest.entry 指定）
+    ├── style.css             ← 可选（manifest.style 指定）
+    └── assets/               ← 可选，自由组织
+        ├── icon.png
+        ├── cover.jpg
+        └── bgm.mp3
+```
+
+插件如何被“发现”
+
+运行时会按顺序尝试三种来源：
+
+优先级 来源 说明
+1 GET /api/plugins 动态后端，返回数组
+2 installed/index.json 静态清单，元素可以是字符串（文件夹名）或完整 manifest 对象
+3 registry.json 兼容模式，同 index.json
+
+installed/index.json 两种写法：
+
+```json
+["hello-world", "snake", "piano"]
+```
+
+```json
+[
+  { "id": "hello-world", "entry": "main.js", "name": "Hello World", "version": "1.0.0" },
+  { "id": "snake",       "entry": "index.js", "name": "贪吃蛇",   "version": "0.2.0" }
+]
+```
+
+字符串写法会去读 installed/<name>/manifest.json。
+
+---
+
+3. manifest.json 参考
+
+字段 类型 必需 默认 说明
+id string ✅ — 唯一标识，只允许 [A-Za-z0-9._-]
+name string ✅ id 显示名，主页卡片/插件中心都会用
+version string  0.0.0 语义化版本号
+apiVersion string  1.0 主版本号必须匹配宿主（当前为 2）
+author string  未知 作者名
+description string  "" 简介，会出现在卡片和预览窗
+icon string  null 相对路径，用于图标（icon.png）
+entry string ✅ — 入口 JS 相对路径
+style string  null 可选样式表，会在 iframe 内自动 <link>
+permissions string[]  [] 声明式标签，仅展示用
+window object  — 见下方
+shortcut object  — 见下方
+
+window · 窗口尺寸与滚动
+
+键 类型 默认 说明
+width number 900 期望宽度（px），会被视口裁剪
+height number 650 期望高度（px），会被视口裁剪
+scroll boolean true 内容超高时是否允许内部滚动
+
+```json
+"window": { "width": 1200, "height": 800, "scroll": true }
+```
+
+scroll: false 会强制 html { overflow: hidden }，适合全屏 canvas / 游戏类插件，此时滚动 API 基本无效。
+
+shortcut · 主页面快捷方式
+
+键 类型 默认 说明
+enabled boolean true 是否默认显示在主页
+color string 自动轮换 yellow / pink / blue / green / orange / purple
+icon string manifest.icon 快捷方式专用图标（覆盖全局 icon）
+tag string PLUGIN 卡片左上角小标签文案
+
+```json
+"shortcut": {
+  "enabled": true,
+  "color": "purple",
+  "icon": "assets/shortcut.png",
+  "tag": "GAME"
+}
+```
+
+⚠️ shortcut.enabled 只是默认值。用户在「设置 → 插件管理」中的手动开关会以 localStorage 覆盖它。
+
+---
+
+4. 入口文件
+
+入口必须是 ES Module，并满足以下任一形式：
+
+```js
+// ✅ 推荐：default 导出
+export default async function (plugin) {
+  /* ... */
+}
+```
+
+```js
+// ✅ 也可以：具名 run
+export async function run(plugin) { /* ... */ }
+```
+
+```js
+// ✅ 也可以：模块本身就是函数（较少用）
+export default async function () { /* 通过 import.meta 无法拿到 plugin */ }
+```
+
+生命周期
+
+1. 宿主解析 manifest → 检查 apiVersion 主版本
+2. 创建 iframe，注入 srcdoc（含 <base> 指向插件目录）
+3. 动态 import("./main.js")
+4. 插件发 host-request → 宿主回传 host-ready + 注入 window.__vibeHost
+5. 调用你的导出函数，await 直到 Promise resolve
+6. resolve 后 → 宿主认为「就绪」，加载遮罩消失
+7. 用户关闭面板 → iframe src = about:blank，媒体全部暂停
+
+重要：入口函数返回即视为「完成渲染」。如果你需要长时间运行（比如游戏主循环），请在函数里启动循环但不要 await 它，让函数及时返回。
+
+```js
+export default async function (plugin) {
+  const canvas = document.createElement('canvas');
+  plugin.ui.mount(canvas);
+
+  // ✅ 启动循环，但不 await
+  function loop() { /* ... */ requestAnimationFrame(loop); }
+  loop();
+}
+```
+
+---
+
+5. Host API 参考
+
+plugin 对象就是 Host API 的根。所有路径解析都自动限定在插件自己的文件夹内，无法越权访问。
+
+5.1 基础信息 & 通知
+
+```js
+plugin.id          // → "hello-world"
+plugin.name        // → "Hello World"
+plugin.version     // → "1.0.0"
+plugin.apiVersion  // → "2.0"
+plugin.manifest    // → 原始 manifest 对象
+
+plugin.toast('保存成功', 'info');     // info / warn / error
+plugin.notify('保存成功');            // toast 的别名
+plugin.log('调试信息', { x: 1 });      // console.log 前缀 [plugin:id]
+```
+
+5.2 assets · 资源解析
+
+方法 返回 说明
+resolve(relPath) string \| null 转成绝对 URL；非法路径返回 null
+image(relPath) Promise<HTMLImageElement> 加载并缓存
+imageSync(relPath) HTMLImageElement \| null 立即返回（可能尚未 load）
+blob(relPath) Promise<Blob> 用于 <img src=URL.createObjectURL(...)> 等
+text(relPath) Promise<string> 读文本
+audio(relPath) Promise<HTMLAudioElement> 直接播放，返回 audio 元素
+video(relPath, opts) Promise<HTMLVideoElement> 创建 video 元素（未插入）
+
+```js
+const url = plugin.assets.resolve('assets/bg.png'); // "https://.../installed/my-plugin/assets/bg.png"
+```
+
+所有 relPath 都相对插件根目录，不要写 ./installed/my-plugin/...。
+
+5.3 image · 图片
+
+```js
+// 加载（不插入）
+const img = await plugin.image.load('assets/cover.jpg');
+
+// 创建（带属性）
+const img2 = await plugin.image.create('assets/cover.jpg', {
+  alt: '封面',
+  width: 320,
+  style: { border: '3px solid #000' }
+});
+
+// 插入到 body（或指定容器）
+await plugin.image.insert('assets/cover.jpg', {
+  container: '#gallery',        // 选择器 / DOM 节点 / 省略 = body
+  className: 'card',
+  width: '100%'
+});
+
+// 批量相册
+await plugin.image.gallery(
+  [
+    'assets/a.jpg',
+    { src: 'assets/b.jpg', alt: 'B' },
+    { src: 'assets/c.jpg', alt: 'C' }
+  ],
+  { container: '#gallery' }
+);
+
+// 获取尺寸信息
+const { width, height } = await plugin.image.info('assets/cover.jpg');
+```
+
+错误占位：加载失败时默认插入一个 vibe-media-error 占位块。如果希望抛出错误：
+
+```js
+await plugin.image.insert('assets/nope.jpg', { errorPlaceholder: false });
+```
+
+5.4 video · 视频
+
+```js
+const v = await plugin.video.create('assets/clip.mp4', {
+  controls: true,       // 默认 true
+  loop: false,
+  muted: false,
+  autoplay: false,
+  preload: 'metadata',
+  width: '100%'
+});
+
+// 插入并自动播放
+await plugin.video.play('assets/clip.mp4', { loop: true });
+
+// 手动插入
+await plugin.video.insert('assets/clip.mp4', {
+  container: '#player',
+  controls: true,
+  autoplay: true
+});
+```
+
+5.5 audio · 音频
+
+```js
+// 直接播放（不入 DOM）
+const a = await plugin.audio.play('assets/bgm.mp3', {
+  loop: true,
+  volume: 0.6       // 0–1
+});
+
+// 插入带控件的 <audio>
+const el = await plugin.audio.insert('assets/song.mp3', {
+  container: '#music',
+  controls: true,
+  autoplay: false
+});
+
+// 全局控制（影响所有插件音频）
+plugin.audio.stopAll();
+plugin.audio.pauseAll();
+plugin.audio.setMasterVolume(0.5);
+```
+
+插件关闭时宿主会自动 stopAll()，不需要你手动清理。
+
+5.6 text · 文本
+
+```js
+const raw   = await plugin.text.read('data/notes.md');
+const lines = await plugin.text.lines('data/list.txt');   // string[]
+const data  = await plugin.text.json('data/config.json'); // 已 parse
+```
+
+5.7 ui · DOM 工具
+
+全部作用于 iframe 内部的 document。
+
+```js
+// 声明式建元素：el(tag, props, ...children)
+const btn = plugin.ui.el('button',
+  {
+    class: 'primary',
+    style: { padding: '8px 16px', border: '2px solid #000' },
+    dataset: { role: 'submit' },
+    text: '提交',
+    onClick: () => plugin.toast('点了'),
+    title: '点我'
+  }
+);
+
+// 挂载到 body
+plugin.ui.mount(btn);
+
+// 获取 body
+const body = plugin.ui.root();
+
+// 查询
+const box = plugin.ui.query('#box');
+
+// 把「选择器 / 节点 / 空」统一解析成容器
+const container = plugin.ui.container('#list');
+```
+
+props 的键规则：
+
+键 行为
+style 对象 → Object.assign(el.style, obj)；字符串 → setAttribute('style', ...)
+class / className el.className = ...
+dataset 对象 → 展开到 el.dataset
+text textContent
+html innerHTML（⚠️ 注意 XSS，只用于可信内容）
+on* 形如 onClick / onInput → addEventListener('click' / 'input', fn)
+其他 setAttribute(key, value)
+
+5.8 scroll · 滚动控制
+
+这是 2.1 的核心新特性。 当插件内容高度超过窗口时，html 会自动出现滚动条（除非 manifest 里 window.scroll: false）。
+
+只读属性
+
+```js
+plugin.scroll.top          // 当前滚动位置（px）
+plugin.scroll.height       // 内容总高度（scrollHeight）
+plugin.scroll.viewport     // 可视区高度（clientHeight）
+plugin.scroll.max          // 最大可滚动距离 = height - viewport
+plugin.scroll.hasOverflow  // 是否超出（boolean）
+plugin.scroll.el()         // 返回 scrollingElement，可自行操作
+```
+
+控制方法
+
+```js
+plugin.scroll.to(320);                  // 滚到 320px（平滑）
+plugin.scroll.to(320, false);           // 瞬时（无动画）
+plugin.scroll.by(120);                  // 相对滚动 +120px
+plugin.scroll.by(-120, false);          // 上滚 120px，瞬时
+plugin.scroll.toTop();                  // 回到顶部
+plugin.scroll.toBottom();               // 滚到底部
+
+plugin.scroll.intoView(node);           // 让节点滚入可视区（nearest）
+plugin.scroll.intoView(node, { block: 'center' });
+```
+
+若用户在系统开启「减少动态效果」（prefers-reduced-motion: reduce），所有动画会自动降级为瞬时。
+
+典型用法：加载完成后滚回顶部
+
+```js
+export default async function (plugin) {
+  const root = plugin.ui.el('div', { class: 'page' });
+  plugin.ui.mount(root);
+
+  // ... 填充内容 ...
+
+  // 内容变长后滚回顶部
+  plugin.scroll.toTop();
+}
+```
+
+典型用法：新消息追加后自动滚到底部
+
+```js
+function appendMessage(text) {
+  const line = plugin.ui.el('div', { class: 'msg', text });
+  plugin.ui.mount(line);
+  plugin.scroll.toBottom();
+}
+```
+
+需要监听滚动？
+
+插件直接 window.addEventListener('scroll', ...) 即可——滚动发生在 iframe 内部，不影响宿主：
+
+```js
+window.addEventListener('scroll', () => {
+  if (plugin.scroll.top > 200) {
+    // 显示「回到顶部」按钮
+  }
+});
+```
+
+5.9 storage · 持久化
+
+以 vibe.plugin.<id>.<key> 为前缀写入 localStorage，JSON 序列化，与其他插件、宿主设置互不干扰。
+
+```js
+plugin.storage.set('theme', 'dark');
+plugin.storage.set('progress', { level: 3, score: 1200 });
+
+const theme    = plugin.storage.get('theme', 'light');
+const progress = plugin.storage.get('progress', { level: 1, score: 0 });
+
+plugin.storage.remove('progress');
+```
+
+⚠️ localStorage 是同步 API，别在每帧循环里疯狂读写。
+
+5.10 events · 本地事件总线
+
+这是插件内部的事件总线，用于解耦你自己的代码。它不会跨插件通信。
+
+```js
+const off = plugin.events.on('score:change', (payload) => {
+  console.log('新分数', payload.score);
+});
+
+plugin.events.emit('score:change', { score: 999 });
+
+off();                                // 取消订阅
+// 或
+plugin.events.off('score:change', handler);
+```
+
+emit 是同步的，且处理器异常会被捕获并 console.error，不会中断其他监听者。
+
+5.11 close · 请求关闭
+
+```js
+plugin.close();  // 请求宿主关闭当前插件窗口（等价于点关闭按钮）
+```
+
+---
+
+6. 窗口尺寸与滚动
+
+尺寸优先级
+
+```
+manifest.window.width/height
+    ↓ 若超出视口
+桌面：max = 视口 × 0.94
+移动：max = 视口 × 0.98
+    ↓ 若与左上角音乐按钮重叠
+自动下移并压缩高度
+    ↓
+最终尺寸
+```
+
+建议：
+
+· 简单工具：{ "width": 720, "height": 560 }
+· 内容页/列表：{ "width": 900, "height": 700, "scroll": true }
+· 全屏游戏：{ "width": 1280, "height": 800, "scroll": false }
+
+滚动行为
+
+默认（scroll: true）——html 拥有 overflow-y: auto，内容自然生长：
+
+```html
+<!-- style.css 或 main.js 里 -->
+<body>
+  <div style="padding: 32px;">
+    <!-- 内容超过窗口高度 → 自动出现滚动条 -->
+  </div>
+</body>
+```
+
+关闭滚动（scroll: false）——html { overflow: hidden }：
+
+```js
+// 你的插件需要自己处理布局
+document.body.style.height = '100%';
+document.body.style.display = 'grid';
+document.body.style.placeItems = 'center';
+```
+
+移动端
+
+· viewport-fit=cover 已经设置
+· -webkit-overflow-scrolling: touch 已启用（惯性滚动）
+· overscroll-behavior: contain 已启用（滚动到底不会带动外层页面）
+
+滚动条样式
+
+运行时已经给 iframe 注入了 neo-brutalism 风格的滚动条：
+
+```
+12px 宽 / 黑色滑轨 / 粉色 hover
+```
+
+如果你想覆盖：
+
+```css
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: #A855F7; }
+```
+
+---
+
+7. 错误处理
+
+插件内部抛错
+
+```js
+export default async function (plugin) {
+  const data = await plugin.text.json('config.json');
+  // 若文件不存在 → 抛错 → 宿主展示「插件加载失败」面板
+}
+```
+
+宿主会显示一个带 CODE 和 PLUGIN 的失败卡片，用户可以点「关闭」。
+
+运行时异步错误
+
+```js
+export default async function (plugin) {
+  // 这里已经 return 了 → 之后的错误不会杀掉插件
+  setTimeout(() => {
+    throw new Error('boom');   // 宿主会弹 toast「XXX 运行异常」
+  }, 1000);
+}
+```
+
+推荐模式
+
+```js
+export default async function (plugin) {
+  try {
+    await main(plugin);
+  } catch (err) {
+    plugin.toast('加载失败：' + err.message, 'error');
+    // 渲染友好错误页
+    plugin.ui.mount(plugin.ui.el('div', {
+      style: { padding: '32px', fontFamily: 'monospace' },
+      text: '😵 ' + err.message
+    }));
+  }
+}
+```
+
+API 版本不匹配
+
+如果 manifest.apiVersion 的主版本不是 2，宿主会直接拒绝加载并抛 API_VERSION_MISMATCH。
+
+---
+
+8. 完整示例插件
+
+一个带滚动、图片、storage 的小抄本插件。
+
+manifest.json
+
+```json
+{
+  "id": "quick-notes",
+  "name": "Quick Notes",
+  "version": "1.0.0",
+  "apiVersion": "2.0",
+  "author": "vibe",
+  "description": "一个会记住你说过什么的小本子。内容太长会自动出现滚动条。",
+  "entry": "main.js",
+  "style": "style.css",
+  "window": { "width": 720, "height": 620, "scroll": true },
+  "shortcut": {
+    "enabled": true,
+    "color": "yellow",
+    "tag": "TOOL"
+  }
+}
+```
+
+style.css
+
+```css
+.notes {
+  padding: 24px;
+  font-family: system-ui, sans-serif;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.notes h1 {
+  font-size: 28px;
+  margin: 0 0 16px;
+  border-bottom: 3px solid #000;
+  padding-bottom: 8px;
+}
+.notes__form { display: flex; gap: 8px; margin-bottom: 20px; }
+.notes__input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 3px solid #000;
+  box-shadow: 3px 3px 0 #000;
+  font: inherit;
+}
+.notes__add {
+  padding: 10px 20px;
+  background: #FF1493;
+  color: #fff;
+  border: 3px solid #000;
+  box-shadow: 3px 3px 0 #000;
+  font-weight: 800;
+  cursor: pointer;
+}
+.notes__add:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #000; }
+.notes__list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.notes__item {
+  padding: 10px 14px;
+  background: #FFF4B8;
+  border: 3px solid #000;
+  box-shadow: 3px 3px 0 #000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.notes__del {
+  background: #0A0A0A;
+  color: #fff;
+  border: none;
+  width: 26px; height: 26px;
+  cursor: pointer;
+  font-weight: 800;
+}
+.notes__empty { color: #888; font-style: italic; padding: 24px 0; text-align: center; }
+```
+
+main.js
+
+```js
+export default async function (plugin) {
+  // 1. 从 storage 恢复
+  let notes = plugin.storage.get('notes', []);
+
+  // 2. 构建 DOM
+  const root = plugin.ui.el('div', { class: 'notes' }, [
+    plugin.ui.el('h1', { text: '📝 Quick Notes' }),
+    plugin.ui.el('div', { class: 'notes__form' }, [
+      plugin.ui.el('input', {
+        class: 'notes__input',
+        placeholder: '写点什么…',
+        onKeydown: (e) => { if (e.key === 'Enter') addNote(e.target); }
+      }),
+      plugin.ui.el('button', {
+        class: 'notes__add',
+        text: '+ 添加',
+        onClick: () => addNote(plugin.ui.query('.notes__input'))
+      })
+    ]),
+    plugin.ui.el('ul', { class: 'notes__list' })
+  ]);
+
+  plugin.ui.mount(root);
+
+  // 3. 渲染
+  const list = plugin.ui.query('.notes__list');
+
+  function render() {
+    list.innerHTML = '';
+    if (!notes.length) {
+      list.appendChild(plugin.ui.el('li', {
+        class: 'notes__empty',
+        text: '还没有笔记，写一条试试？'
+      }));
+      return;
+    }
+    notes.forEach((text, i) => {
+      list.appendChild(plugin.ui.el('li', { class: 'notes__item' }, [
+        plugin.ui.el('span', { text }),
+        plugin.ui.el('button', {
+          class: 'notes__del',
+          text: '×',
+          title: '删除',
+          onClick: () => {
+            notes.splice(i, 1);
+            save();
+            render();
+          }
+        })
+      ]));
+    });
+  }
+
+  // 4. 添加
+  function addNote(input) {
+    const text = (input.value || '').trim();
+    if (!text) return;
+    notes.push(text);
+    input.value = '';
+    save();
+    render();
+
+    // 内容变长 → 平滑滚到底部
+    plugin.scroll.toBottom();
+
+    plugin.events.emit('note:added', { text, total: notes.length });
+  }
+
+  // 5. 持久化
+  function save() {
+    plugin.storage.set('notes', notes);
+  }
+
+  // 6. 事件总线示例：总数变化时 toast
+  plugin.events.on('note:added', ({ total }) => {
+    if (total % 5 === 0) plugin.toast(`已记录 ${total} 条笔记 🎉`, 'info');
+  });
+
+  render();
+
+  // 7. 初次打开若内容超长，滚回顶部
+  plugin.scroll.toTop(false);
+}
+```
+
+---
+
+9. 调试技巧
+
+打开 iframe 的控制台
+
+· Chrome：DevTools → Elements，找到 <iframe class="plugin-frame">，右键 → Show in Console context，然后在 Console 顶部选择该 iframe。
+· Firefox：Console 顶部有 frame 切换下拉框。
+
+使用 plugin.log
+
+```js
+plugin.log('state', { notes, len: notes.length });
+// → [plugin:quick-notes] state {notes: [...], len: 3}
+```
+
+快速迭代
+
+宿主对 manifest.json 做了 cache: 'no-cache'，但对 main.js 走的是标准模块缓存。开发时：
+
+1. 修改代码后 硬刷新（Ctrl/Cmd + Shift + R）
+2. 或打开 DevTools → Network → 勾选 Disable cache
+
+手动触发重新扫描
+
+· 主页 → Plugin Center → 右上角 重新扫描
+· 或 设置 → 插件管理 → 重新扫描
+
+在 Console 里直接访问运行时
+
+```js
+VibeRuntime.PluginManager.list();          // 所有已发现插件
+VibeRuntime.PluginManager.get('quick-notes'); // 单个 manifest
+VibeRuntime.PluginShortcutManager.list();  // 主页上会出现的插件
+```
+
+---
+
+10. 常见问题
+
+Q: 插件里的 document 是哪个？
+
+是 iframe 的 document，不是宿主页面的。 所以：
+
+```js
+document.body           // ✅ iframe 的 body
+window.parent           // ⚠️ 宿主窗口，能访问但不建议依赖
+```
+
+DOM 操作请用 plugin.ui.* 或直接 document（指 iframe）。
+
+Q: 为什么我的 localStorage 里读不到宿主的设置？
+
+插件和宿主同源（都从 installed/ 的相对路径解析），所以 localStorage 是共享的。但请使用 plugin.storage——它会自动加上 vibe.plugin.<id>. 前缀，避免冲突。
+
+Q: 内容明明超过窗口了，为什么没有滚动条？
+
+检查：
+
+1. manifest.window.scroll 是不是被设成了 false
+2. 你的内容是不是被固定高度容器包住了（比如 body > .wrap { height: 100% }）
+3. 内容是不是绝对定位（position: absolute），脱离了文档流
+
+排查方法：在插件 iframe 控制台执行：
+
+```js
+document.scrollingElement.scrollHeight   // 内容总高
+document.documentElement.clientHeight    // 可视高
+// 前者 > 后者 → 应该会出现滚动条
+```
+
+Q: plugin.scroll.toBottom() 没反应？
+
+可能是内容还没布局完成。试试延后一帧：
+
+```js
+requestAnimationFrame(() => plugin.scroll.toBottom());
+```
+
+或等图片加载完：
+
+```js
+const img = await plugin.image.load('assets/big.jpg');
+plugin.ui.mount(img);
+// 等图片撑开高度后再滚动
+img.decode?.().then(() => plugin.scroll.toBottom());
+```
+
+Q: window.scroll: false 时还能用 plugin.scroll 吗？
+
+能调用，但基本无效——max 会是 0。你自己接管布局时，可以自行对某个元素滚动，plugin.scroll.el() 拿到的仍是 document.scrollingElement。
+
+Q: 音频播完怎么自动销毁？
+
+audio.play() 返回的 <audio> 在 ended 时自动从媒体池移除。插入 DOM 的 <audio> 需要你自己监听：
+
+```js
+const el = await plugin.audio.insert('assets/song.mp3');
+el.addEventListener('ended', () => el.remove());
+```
+
+Q: 可以跨插件通信吗？
+
+不能。plugin.events 是每个 iframe 内部的。如果你确实需要，可以：
+
+· 通过 plugin.storage + storage 事件（同源但需自行轮询 / 监听 storage 事件）
+· 或者把共享逻辑做在同一个插件里
+
+Q: 图标加载失败会怎样？
+
+自动降级为插件名的首字母。你不需要写兜底逻辑，但建议提供 icon 字段。
+
+Q: 插件关闭时我需要手动清理什么？
+
+基本不用。宿主会：
+
+1. 移除 iframe（DOM 全部销毁）
+2. MediaManager.pauseAll() + stopAll()
+3. src = about:blank
+
+唯一需要你做的是：如果开了 requestAnimationFrame 循环，它会随 iframe 销毁而停止——不需要手动 cancelAnimationFrame。
+
+---
+
+附录 · API 速查
+
+```js
+plugin.id / name / version / apiVersion / manifest
+
+plugin.toast(msg, 'info' | 'warn' | 'error')
+plugin.notify(msg, level)
+plugin.log(...args)
+plugin.close()
+
+plugin.assets.resolve(p)
+plugin.assets.image(p)
+plugin.assets.imageSync(p)
+plugin.assets.blob(p)
+plugin.assets.text(p)
+plugin.assets.audio(p)
+plugin.assets.video(p, opts)
+
+plugin.image.load(p)
+plugin.image.create(p, opts)
+plugin.image.insert(p, opts)
+plugin.image.gallery(items, opts)
+plugin.image.info(p)
+
+plugin.video.load(p, opts)
+plugin.video.create(p, opts)
+plugin.video.insert(p, opts)
+plugin.video.play(p, opts)
+
+plugin.audio.play(p, opts)
+plugin.audio.insert(p, opts)
+plugin.audio.stopAll()
+plugin.audio.pauseAll()
+plugin.audio.setMasterVolume(v)
+
+plugin.text.read(p)
+plugin.text.lines(p)
+plugin.text.json(p)
+
+plugin.ui.el(tag, props, ...children)
+plugin.ui.mount(node)
+plugin.ui.root()
+plugin.ui.query(sel)
+plugin.ui.container(selOrNode)
+
+plugin.scroll.to(y, smooth?)
+plugin.scroll.by(dy, smooth?)
+plugin.scroll.toTop(smooth?)
+plugin.scroll.toBottom(smooth?)
+plugin.scroll.intoView(node, opts?)
+plugin.scroll.top / height / viewport / max / hasOverflow
+plugin.scroll.el()
+
+plugin.storage.get(k, fallback)
+plugin.storage.set(k, v)
+plugin.storage.remove(k)
+
+plugin.events.on(name, fn) → off
+plugin.events.off(name, fn)
+plugin.events.emit(name, data)

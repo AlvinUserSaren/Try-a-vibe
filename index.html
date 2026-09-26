@@ -1,0 +1,3899 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>啥都vibe一点</title>
+<meta name="description" content="啥都vibe一点 — 插件化数字游乐场">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<script>
+(function () {
+  try {
+    var raw = localStorage.getItem('vibe-settings-v1');
+    if (!raw) return;
+    var s = JSON.parse(raw);
+    if (!s || typeof s !== 'object') return;
+    var root = document.documentElement;
+    if (s.blobs === false)             root.classList.add('fx-no-blobs');
+    if (s.particles === false)         root.classList.add('fx-no-particles');
+    if (s.noise === false)             root.classList.add('fx-no-noise');
+    if (s.cardMotion === false)        root.classList.add('fx-no-card-motion');
+    if (s.entranceAnimation === false) root.classList.add('fx-no-entrance');
+    if (s.viewerBlur === false)        root.classList.add('fx-no-viewer-blur');
+  } catch (e) {}
+})();
+</script>
+
+<style>
+/* ============================================================
+   NEO-BRUTALISM · 主页面样式
+   ============================================================ */
+:root{
+  --nb-black:#0A0A0A;
+  --nb-border:#000000;
+  --nb-white:#FFFFFF;
+  --nb-light:#F5F5F0;
+  --nb-pink:#FF1493;   --nb-pink-bg:#FFB6D9;
+  --nb-yellow:#FFE135; --nb-yellow-bg:#FFF4B8;
+  --nb-blue:#00BFFF;   --nb-blue-bg:#B3E5FC;
+  --nb-green:#32CD32;  --nb-green-bg:#B9F6CA;
+  --nb-orange:#FF6B35; --nb-orange-bg:#FFD4BF;
+  --nb-purple:#A855F7; --nb-purple-bg:#E9D5FF;
+  --b-sm:2px solid var(--nb-border);
+  --b-md:3px solid var(--nb-border);
+  --b-lg:4px solid var(--nb-border);
+  --s-sm:3px 3px 0 var(--nb-border);
+  --s-md:5px 5px 0 var(--nb-border);
+  --s-lg:7px 7px 0 var(--nb-border);
+  --font-display:'Plus Jakarta Sans',system-ui,sans-serif;
+  --font-body:'Inter',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;
+  --ease:cubic-bezier(.16,1,.3,1);
+  --panel-pop-ease:cubic-bezier(.34,1.56,.64,1);
+  --panel-pop-duration:.38s;
+  --panel-fade-duration:.24s;
+  --music-fab-size:52px;
+  --music-fab-inset:1rem;
+  --music-fab-safe:calc(var(--music-fab-inset) + var(--music-fab-size) + 12px);
+}
+@media (min-width:761px){
+  :root{ --music-fab-inset:2rem; }
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;scrollbar-gutter:stable}
+body{
+  min-height:100vh;
+  display:flex;flex-direction:column;
+  background:var(--nb-light);
+  color:var(--nb-black);
+  font-family:var(--font-body);
+  font-size:1rem;line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+img{display:block;max-width:100%}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:3px solid var(--nb-pink);outline-offset:3px}
+
+.bg-layer{
+  position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255,225,53,.28), transparent 48%),
+    radial-gradient(circle at 82% 78%, rgba(0,191,255,.18), transparent 50%),
+    var(--nb-light);
+}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);will-change:transform;pointer-events:none}
+.blob--1{width:46vmax;height:46vmax;left:-14vmax;top:-14vmax;background:radial-gradient(circle,rgba(255,20,147,.42),transparent 68%);animation:drift1 24s ease-in-out infinite alternate}
+.blob--2{width:40vmax;height:40vmax;right:-12vmax;top:6vmax;background:radial-gradient(circle,rgba(0,191,255,.35),transparent 68%);animation:drift2 28s ease-in-out infinite alternate}
+.blob--3{width:52vmax;height:52vmax;left:14vmax;bottom:-24vmax;background:radial-gradient(circle,rgba(50,205,50,.28),transparent 68%);animation:drift3 32s ease-in-out infinite alternate}
+@keyframes drift1{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(10vmax,6vmax,0) scale(1.18)}}
+@keyframes drift2{from{transform:translate3d(0,0,0) scale(1.1)}to{transform:translate3d(-12vmax,8vmax,0) scale(.9)}}
+@keyframes drift3{from{transform:translate3d(0,0,0) scale(.95)}to{transform:translate3d(-8vmax,-10vmax,0) scale(1.12)}}
+#particles{position:absolute;inset:0;display:block;pointer-events:none}
+.noise{position:absolute;inset:0;opacity:.05;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E")}
+
+.page{
+  position:relative;z-index:1;flex:1;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:clamp(1rem,2.5vw,1.5rem);
+  padding:clamp(2rem,5vw,3rem) clamp(1rem,4vw,2rem);
+  width:min(1100px,100% - 2rem);margin-inline:auto;
+  transition:filter .55s var(--ease),opacity .55s var(--ease);
+}
+.page-deco{display:flex;justify-content:center;align-items:center;gap:.75rem}
+.page-deco svg{display:block;flex-shrink:0}
+.deco-line{width:clamp(3rem,10vw,6rem);height:3px;background:var(--nb-black);border:1px solid var(--nb-black)}
+.deco-badge{
+  font-family:var(--font-mono);font-size:.6875rem;font-weight:700;letter-spacing:.08em;
+  padding:.3rem .9rem;border:var(--b-sm);box-shadow:var(--s-sm);
+  background:var(--nb-white);color:var(--nb-black);
+}
+.page-title{text-align:center}
+.page-title h1{
+  font-family:var(--font-display);
+  font-size:clamp(2.5rem,9vw,5.5rem);
+  font-weight:800;line-height:1.05;letter-spacing:-.035em;
+}
+.page-title h1 em{
+  font-style:normal;display:inline-block;background:var(--nb-yellow);
+  padding:0 .18em;border:var(--b-sm);box-shadow:var(--s-sm);
+  transform:rotate(-2deg);margin:0 .05em;
+}
+.subtitle{
+  font-family:var(--font-mono);font-size:clamp(.6875rem,1.6vw,.8125rem);
+  letter-spacing:.3em;color:#666;text-align:center;text-transform:uppercase;
+}
+
+.actions{
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:clamp(1rem,2.2vw,1.35rem);
+  width:100%;margin-top:clamp(.75rem,2vw,1.25rem);
+}
+.action-card{
+  position:relative;aspect-ratio:4/3;border:var(--b-md);box-shadow:var(--s-md);
+  padding:1.25rem;display:flex;flex-direction:column;justify-content:flex-end;
+  cursor:pointer;text-align:left;width:100%;background:var(--nb-white);
+  transition:transform .18s ease, box-shadow .18s ease;
+  overflow:hidden;-webkit-tap-highlight-color:transparent;
+}
+.action-card:hover,.action-card:focus-visible{transform:translate(-3px,-3px);box-shadow:var(--s-lg)}
+.action-card:active{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--nb-border)}
+.action-card--yellow{background:var(--nb-yellow-bg)}
+.action-card--pink{background:var(--nb-pink-bg)}
+.action-card--blue{background:var(--nb-blue-bg)}
+.action-card--green{background:var(--nb-green-bg)}
+.action-card--orange{background:var(--nb-orange-bg)}
+.action-card--purple{background:var(--nb-purple-bg)}
+.action-card--plugin{background:var(--nb-white)}
+.action-card > *{transition:opacity .34s ease .06s}
+.action-card.is-viewing-source{pointer-events:none}
+.action-card.is-viewing-source > *{opacity:0;transition:opacity 0s}
+.card-shape{
+  position:absolute;top:.9rem;right:.9rem;display:block;
+  transition:transform .4s var(--ease);z-index:1;
+}
+.card-shape svg{display:block}
+.action-card:hover .card-shape,.action-card:focus-visible .card-shape{transform:rotate(18deg) scale(1.08)}
+.card-shape--plugin{
+  width:44px;height:44px;
+  display:grid;place-items:center;
+  background:var(--nb-white);
+  border:var(--b-sm);box-shadow:var(--s-sm);
+  overflow:hidden;
+  font-family:var(--font-display);font-weight:800;font-size:1.25rem;line-height:1;
+  color:var(--nb-black);
+}
+.card-shape--plugin img{width:100%;height:100%;object-fit:cover;display:block}
+.action-card:hover .card-shape--plugin,
+.action-card:focus-visible .card-shape--plugin{transform:rotate(0) scale(1.06)}
+.card-tag{
+  position:absolute;top:1rem;left:1rem;
+  font-family:var(--font-mono);font-size:.625rem;font-weight:700;letter-spacing:.06em;
+  display:inline-block;padding:.15rem .45rem;border:var(--b-sm);
+  background:var(--nb-white);color:var(--nb-black);z-index:1;
+}
+.card-name{
+  display:block;
+  font-family:var(--font-display);
+  font-size:clamp(1.05rem,2.6vw,1.35rem);
+  font-weight:800;line-height:1.2;letter-spacing:-.01em;color:var(--nb-black);
+}
+.card-desc{display:block;font-size:.8125rem;color:#444;margin-top:.15rem;line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-go{
+  font-family:var(--font-mono);font-size:.625rem;font-weight:700;letter-spacing:.06em;
+  margin-top:.7rem;padding:.25rem .6rem;background:var(--nb-black);color:var(--nb-white);
+  align-self:flex-start;transition:transform .25s var(--ease);
+}
+.action-card:hover .card-go{transform:translateX(4px)}
+
+.site-footer{
+  position:relative;z-index:1;
+  padding:1.5rem 1rem;
+  background:var(--nb-black);color:#888;
+  font-family:var(--font-mono);font-size:.6875rem;
+  text-align:center;letter-spacing:.08em;
+  transition:filter .55s var(--ease),opacity .55s var(--ease);
+}
+body.is-viewing .page,
+body.is-viewing .site-footer{filter:blur(8px);opacity:.35;pointer-events:none}
+
+.close-btn{
+  display:grid;place-items:center;
+  width:42px;height:42px;
+  background:var(--nb-pink);color:var(--nb-white);
+  border:var(--b-sm);box-shadow:var(--s-sm);
+  font-family:var(--font-display);font-weight:800;font-size:1.1rem;line-height:1;
+  transition:transform .15s ease, box-shadow .15s ease,
+             background .15s ease, color .15s ease;
+}
+.close-btn:hover{
+  background:var(--nb-yellow);color:var(--nb-black);
+  transform:translate(-2px,-2px);box-shadow:var(--s-md);
+}
+.close-btn:active{
+  transform:translate(1px,1px);box-shadow:2px 2px 0 var(--nb-border);
+}
+
+.viewer{position:fixed;inset:0;z-index:500;pointer-events:none;visibility:hidden}
+.viewer.is-active{pointer-events:auto}
+.viewer-scrim{
+  position:absolute;inset:0;background:rgba(10,10,10,.55);
+  opacity:0;cursor:zoom-out;transition:opacity .55s ease .08s;
+}
+.viewer.is-active .viewer-scrim{opacity:1;transition-delay:0s}
+.viewer-panel{
+  position:absolute;overflow:hidden;border:var(--b-md);box-shadow:var(--s-md);
+  background:var(--nb-light);
+  contain:layout style;
+  transition:left .78s var(--ease), top .78s var(--ease), width .78s var(--ease), height .78s var(--ease), background-color .42s ease;
+}
+.viewer-stage{
+  position:absolute;inset:0;
+  display:grid;place-items:center;
+  padding:20px;
+  opacity:0;transition:opacity .35s ease .15s;
+}
+.viewer-stage.is-visible{opacity:1}
+.viewer-stage.is-plugin{place-items:stretch;overflow:hidden;padding:0}
+.viewer-stage.is-plugin > *{width:100%;height:100%}
+
+.viewer-close{
+  position:absolute;top:12px;right:12px;z-index:10;
+  opacity:0;transform:scale(.7);
+  transition:opacity .28s ease, transform var(--panel-pop-duration) var(--panel-pop-ease),
+             background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.viewer-close.is-visible{opacity:.85;transform:scale(1)}
+.viewer-close.is-visible:hover{
+  opacity:1;
+  transform:translate(-2px,-2px) scale(1);
+}
+.viewer-close:active{
+  transform:translate(1px,1px) scale(1);
+}
+.viewer-close.is-back{background:var(--nb-black);color:var(--nb-white);}
+.viewer-close.is-back.is-visible:hover{background:var(--nb-yellow);color:var(--nb-black);}
+
+.continue-modal{
+  position:fixed;inset:0;z-index:600;display:grid;place-items:center;
+  padding:var(--music-fab-safe) 1rem 1rem;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity var(--panel-fade-duration) ease,
+             visibility var(--panel-pop-duration) ease;
+}
+.continue-modal.is-open{opacity:1;visibility:visible;pointer-events:auto}
+.continue-scrim{
+  position:absolute;inset:0;background:rgba(10,10,10,.45);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);cursor:pointer;
+}
+.continue-panel{
+  position:relative;width:min(440px, calc(100% - 2rem));
+  max-height:calc(100vh - var(--music-fab-safe) - 1rem);
+  overflow-y:auto;
+  background:var(--nb-white);border:var(--b-lg);box-shadow:10px 10px 0 rgba(0,0,0,.9);
+  padding:2.25rem 1.75rem 1.75rem;
+  transform:scale(.7);opacity:0;
+  transform-origin:center center;
+  transition:transform var(--panel-pop-duration) var(--panel-pop-ease),
+             opacity var(--panel-fade-duration) ease;
+  will-change:transform, opacity;
+}
+.continue-modal.is-open .continue-panel{transform:scale(1);opacity:1}
+.continue-close{
+  position:absolute;top:-16px;right:-16px;z-index:5;
+}
+.continue-badge{
+  display:inline-block;font-family:var(--font-mono);font-size:.625rem;font-weight:700;
+  letter-spacing:.12em;padding:.25rem .7rem;background:var(--nb-yellow);
+  border:var(--b-sm);box-shadow:var(--s-sm);color:var(--nb-black);margin-bottom:.85rem;
+}
+.continue-title{font-family:var(--font-display);font-size:1.75rem;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin-bottom:.5rem}
+.continue-desc{font-size:.9375rem;color:#555;line-height:1.65;margin-bottom:1.5rem}
+.continue-buttons{display:flex;flex-direction:column;gap:.75rem}
+.continue-btn{
+  display:flex;align-items:center;justify-content:center;gap:.5rem;
+  width:100%;padding:.85rem 1.25rem;
+  font-family:var(--font-display);font-size:.9rem;font-weight:800;
+  letter-spacing:.02em;text-align:center;background:var(--nb-pink);color:var(--nb-white);
+  border:var(--b-md);box-shadow:var(--s-md);
+  cursor:pointer;text-decoration:none;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.continue-btn:hover{transform:translate(-3px,-3px);box-shadow:var(--s-lg)}
+.continue-btn:active{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--nb-border)}
+.continue-btn--secondary{background:var(--nb-white);color:var(--nb-black)}
+
+.plugin-preview{
+  position:fixed;inset:0;z-index:550;
+  display:grid;place-items:center;
+  padding:var(--music-fab-safe) 1rem 1rem;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity var(--panel-fade-duration) ease,
+             visibility var(--panel-pop-duration) ease;
+}
+.plugin-preview.is-open{opacity:1;visibility:visible;pointer-events:auto}
+.plugin-preview__scrim{
+  position:absolute;inset:0;
+  background:rgba(10,10,10,.5);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  cursor:pointer;
+}
+.plugin-preview__panel{
+  position:relative;
+  width:min(420px, calc(100vw - 2rem));
+  max-height:calc(100vh - var(--music-fab-safe) - 1rem);
+  display:flex;flex-direction:column;
+  background:var(--nb-white);
+  border:var(--b-lg);box-shadow:10px 10px 0 rgba(0,0,0,.9);
+  padding:1.75rem 1.6rem 1.5rem;
+  transform:scale(.7);opacity:0;
+  transform-origin:center center;
+  transition:transform var(--panel-pop-duration) var(--panel-pop-ease),
+             opacity var(--panel-fade-duration) ease;
+  will-change:transform, opacity;
+}
+.plugin-preview.is-open .plugin-preview__panel{transform:scale(1);opacity:1}
+#pluginPreviewBody{
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+}
+.plugin-preview__close{
+  position:absolute;top:-16px;right:-16px;z-index:5;
+}
+.plugin-preview__head{display:flex;align-items:center;gap:1rem;margin-bottom:1rem}
+.plugin-preview__icon{
+  flex-shrink:0;width:64px;height:64px;
+  display:grid;place-items:center;
+  background:var(--nb-yellow);color:var(--nb-black);
+  border:var(--b-md);box-shadow:var(--s-md);
+  font-family:var(--font-display);font-weight:800;font-size:1.75rem;line-height:1;
+  overflow:hidden;
+}
+.plugin-preview__icon img{width:100%;height:100%;object-fit:cover;display:block}
+.plugin-preview__names{min-width:0;flex:1}
+.plugin-preview__title{
+  font-family:var(--font-display);font-size:1.3rem;font-weight:800;
+  line-height:1.2;letter-spacing:-.02em;word-break:break-word;
+}
+.plugin-preview__author{
+  font-family:var(--font-mono);font-size:.75rem;
+  color:#777;letter-spacing:.04em;margin-top:.2rem;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.plugin-preview__meta{display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.9rem}
+.plugin-preview__desc{
+  font-size:.9rem;color:#444;line-height:1.65;
+  padding:1rem 0;
+  border-top:2px dashed rgba(0,0,0,.15);
+  border-bottom:2px dashed rgba(0,0,0,.15);
+  white-space:pre-wrap;word-break:break-word;
+}
+.plugin-preview__foot{
+  display:flex;justify-content:flex-end;align-items:center;
+  gap:.75rem;margin-top:1.25rem;
+}
+.plugin-preview__open{
+  padding:.7rem 1.4rem;
+  background:var(--nb-pink);color:var(--nb-white);
+  border:var(--b-md);box-shadow:var(--s-md);
+  font-family:var(--font-display);font-size:.9rem;font-weight:800;
+  letter-spacing:.02em;line-height:1;
+  transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.plugin-preview__open:hover{transform:translate(-3px,-3px);box-shadow:var(--s-lg)}
+.plugin-preview__open:active{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--nb-border)}
+
+.settings-button{
+  position:fixed;z-index:700;
+  right:1rem;bottom:calc(1rem + env(safe-area-inset-bottom, 0px));
+  width:52px;height:52px;display:grid;place-items:center;
+  background:var(--nb-white);color:var(--nb-black);
+  border:var(--b-md);box-shadow:var(--s-md);
+  transition:transform .15s ease, box-shadow .15s ease, background .15s ease,
+             opacity .25s ease, visibility .25s ease;
+}
+.settings-button:hover{transform:translate(-3px,-3px);box-shadow:var(--s-lg);background:var(--nb-yellow)}
+.settings-button:active{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--nb-border)}
+.settings-button svg{transition:transform .5s var(--ease)}
+.settings-button.is-open svg{transform:rotate(120deg)}
+
+body.is-viewing .settings-button{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+body.is-viewing .settings-panel{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+
+.settings-panel{
+  position:fixed;z-index:800;right:1rem;left:1rem;
+  bottom:calc(1rem + env(safe-area-inset-bottom, 0px) + 52px + 12px);
+  max-height:70vh;overflow-y:auto;
+  background:var(--nb-white);border:var(--b-lg);box-shadow:10px 10px 0 rgba(0,0,0,.9);
+  padding:1.25rem;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transform:translateY(20px) scale(.4);
+  transform-origin:calc(100% - 26px) calc(100% + 38px);
+  transition:opacity .18s ease, visibility .18s ease, transform .22s cubic-bezier(.4,0,.6,1);
+  will-change:transform, opacity;
+}
+.settings-panel.is-open{
+  opacity:1;visibility:visible;pointer-events:auto;
+  transform:translateY(0) scale(1);
+  transition:opacity .2s ease, visibility 0s, transform .45s cubic-bezier(.34,1.56,.64,1);
+}
+.settings-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding-bottom:.75rem;margin-bottom:.35rem;border-bottom:var(--b-md)}
+.settings-header h2{font-family:var(--font-display);font-size:1.15rem;font-weight:800;display:flex;align-items:center;gap:.5rem}
+.settings-header h2::before{content:'';width:10px;height:10px;background:var(--nb-pink);border:2px solid var(--nb-black)}
+.settings-close{width:32px;height:32px;display:grid;place-items:center;background:var(--nb-black);color:var(--nb-white);border:var(--b-sm);font-family:var(--font-display);font-weight:800;font-size:.85rem;line-height:1}
+
+.settings-tabs{display:flex;gap:.4rem;margin:.6rem 0 .9rem;flex-wrap:wrap}
+.settings-tab{
+  padding:.4rem .85rem;font-family:var(--font-display);font-size:.75rem;font-weight:800;
+  background:var(--nb-white);border:var(--b-sm);box-shadow:2px 2px 0 var(--nb-border);
+}
+.settings-tab.is-active{background:var(--nb-black);color:var(--nb-white)}
+.settings-view{display:none}
+.settings-view.is-active{display:block}
+
+.setting-item{
+  position:relative;display:flex;align-items:center;justify-content:space-between;
+  gap:1rem;padding:.7rem .15rem;cursor:pointer;user-select:none;
+  border-bottom:1px dashed rgba(0,0,0,.14);
+}
+.setting-item:last-child{border-bottom:none}
+.setting-item__text{display:flex;flex-direction:column;gap:.1rem;min-width:0}
+.setting-item__text strong{font-family:var(--font-display);font-size:.875rem;font-weight:800}
+.setting-item__text small{font-size:.6875rem;color:#777;line-height:1.4}
+.setting-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);pointer-events:none}
+.setting-switch{position:relative;flex-shrink:0;width:44px;height:26px;background:#d4d4d0;border:var(--b-sm);transition:background .22s ease}
+.setting-switch::after{content:'';position:absolute;top:50%;left:2px;width:16px;height:16px;margin-top:-8px;background:var(--nb-white);border:1.5px solid var(--nb-black);transition:transform .24s var(--ease)}
+.setting-input:checked ~ .setting-switch{background:var(--nb-green)}
+.setting-input:checked ~ .setting-switch::after{transform:translateX(18px)}
+
+.settings-reset{
+  display:block;width:100%;margin-top:.85rem;padding:.65rem 1rem;
+  background:var(--nb-white);border:var(--b-sm);box-shadow:var(--s-sm);
+  font-family:var(--font-display);font-size:.8125rem;font-weight:800;
+}
+.settings-reset:hover{background:var(--nb-yellow)}
+
+@media (min-width:761px){
+  .settings-button{right:2rem;bottom:2rem}
+  .settings-panel{
+    right:2rem;left:auto;bottom:calc(2rem + 52px + 12px);
+    width:420px;max-height:75vh;
+  }
+}
+
+html.fx-no-blobs .blob{display:none}
+html.fx-no-particles #particles{display:none}
+html.fx-no-noise .noise{display:none}
+html.fx-no-card-motion .action-card,html.fx-no-card-motion .card-shape,html.fx-no-card-motion .card-go{transition:none !important}
+html.fx-no-card-motion .action-card:hover,html.fx-no-card-motion .action-card:focus-visible{transform:none !important;box-shadow:var(--s-md) !important}
+html.fx-no-card-motion .action-card:active{transform:none !important;box-shadow:var(--s-md) !important}
+html.fx-no-entrance .page-deco,html.fx-no-entrance .page-title,html.fx-no-entrance .subtitle,html.fx-no-entrance .actions,html.fx-no-entrance .action-card{animation:none !important}
+html.fx-no-viewer-blur body.is-viewing .page,html.fx-no-viewer-blur body.is-viewing .site-footer{filter:none;opacity:1}
+
+@keyframes riseIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+.page-deco{animation:riseIn .7s var(--ease) backwards;animation-delay:.05s}
+.page-title{animation:riseIn .85s var(--ease) backwards;animation-delay:.13s}
+.subtitle{animation:riseIn .85s var(--ease) backwards;animation-delay:.21s}
+.actions{animation:riseIn .85s var(--ease) backwards;animation-delay:.29s}
+.action-card{animation:riseIn .7s var(--ease) backwards}
+
+@media (max-width:760px){
+  .actions{grid-template-columns:1fr;gap:.75rem}
+  .action-card{aspect-ratio:auto;flex-direction:row;align-items:center;justify-content:flex-start;gap:.9rem;padding:.95rem 1.05rem}
+  .card-shape{position:static;margin-left:auto;order:10;flex-shrink:0;transform:scale(.9)}
+  .action-card:hover .card-shape,.action-card:focus-visible .card-shape{transform:scale(.9) rotate(18deg)}
+  .action-card:hover .card-shape--plugin,.action-card:focus-visible .card-shape--plugin{transform:scale(.9) rotate(0)}
+  .card-shape--plugin{width:40px;height:40px}
+  .card-tag{position:static;order:1;flex-shrink:0}
+  .card-name{order:2;font-size:1.05rem}
+  .card-desc{display:none}
+  .card-go{order:9;margin-top:0;flex-shrink:0}
+  .continue-panel{padding:2rem 1.35rem 1.35rem}
+  .continue-close{top:-12px;right:-12px;width:38px;height:38px;font-size:1rem}
+  .plugin-preview__panel{padding:1.5rem 1.25rem 1.25rem}
+  .plugin-preview__close{top:-12px;right:-12px;width:38px;height:38px;font-size:1rem}
+  .plugin-preview__icon{width:52px;height:52px;font-size:1.4rem}
+  .plugin-preview__title{font-size:1.15rem}
+  .viewer-close{top:8px;right:8px;width:38px;height:38px;font-size:1rem}
+}
+@media (max-width:380px){.page-title h1{font-size:2.2rem}.card-tag{display:none}}
+@media (min-width:1101px){
+  .page{width:min(1200px, calc(100% - 4rem));padding:clamp(3rem,5vw,4rem) 0}
+  .page-title h1{font-size:clamp(3.4rem,5vw,4.6rem)}
+  .actions{grid-template-columns:repeat(2,1fr);gap:1.25rem;max-width:900px;margin-inline:auto}
+  .action-card{aspect-ratio:1.55/1;padding:1.35rem}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+  .blob{animation:none !important}
+}
+
+.toast-stack{
+  position:fixed;z-index:900;left:50%;
+  bottom:calc(1rem + env(safe-area-inset-bottom, 0px));
+  transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:.5rem;
+  pointer-events:none;width:min(360px, calc(100% - 2rem));
+}
+.toast{
+  width:100%;padding:.6rem .9rem;
+  background:var(--nb-black);color:var(--nb-white);
+  border:var(--b-sm);box-shadow:var(--s-sm);
+  font-family:var(--font-mono);font-size:.6875rem;font-weight:700;
+  letter-spacing:.04em;text-align:center;
+  opacity:0;transform:translateY(12px);
+  transition:opacity .24s ease, transform .32s var(--ease);
+}
+.toast.is-in{opacity:1;transform:translateY(0)}
+.toast--warn{background:var(--nb-orange)}
+.toast--error{background:var(--nb-pink)}
+
+/* ============================================================
+   Video Modal（查看更新计划 · 全屏视频）
+   ============================================================ */
+.video-modal{
+  position:fixed;inset:0;z-index:950;
+  background:rgba(10,10,10,.96);
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity var(--panel-fade-duration) ease,
+             visibility var(--panel-pop-duration) ease;
+}
+.video-modal.is-open{opacity:1;visibility:visible;pointer-events:auto}
+.video-modal__scrim{position:absolute;inset:0;cursor:zoom-out}
+.video-modal__stage{
+  position:absolute;inset:0;
+  display:grid;place-items:center;
+  padding:calc(62px + env(safe-area-inset-top,0px)) clamp(.75rem,3vw,2.5rem)
+          calc(1rem + env(safe-area-inset-bottom,0px));
+  pointer-events:none;
+}
+.video-modal__player{
+  width:100%;height:100%;
+  max-width:1600px;max-height:100%;
+  object-fit:contain;
+  background:#000;
+  border:var(--b-md);
+  box-shadow:6px 6px 0 rgba(255,255,255,.12);
+  pointer-events:auto;
+  outline:none;
+}
+.video-modal__player:focus-visible{outline:3px solid var(--nb-pink);outline-offset:3px}
+.video-modal__close{
+  position:absolute;z-index:5;
+  top:calc(1rem + env(safe-area-inset-top,0px));
+  right:1rem;
+}
+/* 视频错误提示（如未找到文件 / 编解码器不支持） */
+.video-modal__error{
+  position:absolute;
+  left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  max-width:min(520px, calc(100% - 2rem));
+  padding:1rem 1.25rem;
+  background:var(--nb-pink);
+  color:var(--nb-white);
+  border:var(--b-md);
+  box-shadow:6px 6px 0 rgba(0,0,0,.9);
+  font-family:var(--font-mono);
+  font-size:.8125rem;
+  line-height:1.5;
+  letter-spacing:.02em;
+  text-align:left;
+  word-break:break-word;
+  pointer-events:none;
+  display:none;
+  z-index:6;
+}
+.video-modal__error.is-visible{display:block}
+.video-modal__error strong{display:block;margin-bottom:.35rem;font-family:var(--font-display);font-size:.95rem}
+.video-modal__error code{
+  display:inline-block;
+  background:var(--nb-black);
+  color:var(--nb-yellow);
+  padding:.1em .4em;
+  font-size:.9em;
+  margin-top:.2em;
+}
+@media (min-width:761px){
+  .video-modal__close{right:2rem;top:2rem}
+  .video-modal__stage{
+    padding:calc(84px + env(safe-area-inset-top,0px)) clamp(1.5rem,4vw,3rem) 2rem;
+  }
+}
+
+/* ============================================================
+   PLUGIN CENTER
+   ============================================================ */
+.plugin-center{
+  width:100%;height:100%;
+  overflow-y:auto;overflow-x:hidden;
+  padding:clamp(1.1rem,2.6vw,1.6rem);
+  background:var(--nb-light);
+  display:flex;flex-direction:column;gap:1.1rem;
+}
+.plugin-center__head{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:1rem;flex-wrap:wrap;
+  padding-bottom:.85rem;border-bottom:var(--b-md);
+}
+.plugin-center__title{font-family:var(--font-display);font-size:clamp(1.3rem,3vw,1.65rem);font-weight:800;letter-spacing:-.02em;line-height:1.15}
+.plugin-center__sub{font-family:var(--font-mono);font-size:.6875rem;letter-spacing:.14em;color:#777;text-transform:uppercase;margin-top:.2rem}
+.plugin-center__actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.pc-btn{
+  font-family:var(--font-display);font-size:.75rem;font-weight:800;
+  padding:.45rem .9rem;background:var(--nb-white);color:var(--nb-black);
+  border:var(--b-sm);box-shadow:var(--s-sm);
+  transition:transform .15s ease,box-shadow .15s ease,background .15s ease;
+}
+.pc-btn:hover{transform:translate(-2px,-2px);box-shadow:var(--s-md);background:var(--nb-yellow)}
+.pc-btn:active{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--nb-border)}
+.pc-btn--primary{background:var(--nb-pink);color:var(--nb-white)}
+.pc-btn--primary:hover{background:var(--nb-pink)}
+.pc-btn--ghost{background:transparent;box-shadow:none;border-style:dashed}
+.pc-btn--ghost:hover{background:var(--nb-white);box-shadow:var(--s-sm)}
+
+.plugin-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  gap:clamp(.85rem,2vw,1.1rem);
+}
+.plugin-card{
+  position:relative;display:flex;flex-direction:column;gap:.65rem;
+  padding:1.05rem;background:var(--nb-white);
+  border:var(--b-md);box-shadow:var(--s-md);
+  text-align:left;cursor:pointer;
+  transition:transform .18s ease,box-shadow .18s ease;
+  overflow:hidden;
+}
+.plugin-card:hover,.plugin-card:focus-visible{transform:translate(-3px,-3px);box-shadow:var(--s-lg)}
+.plugin-card:active{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--nb-border)}
+.plugin-card__top{display:flex;align-items:center;gap:.8rem;min-width:0}
+.plugin-card__icon{
+  flex-shrink:0;width:48px;height:48px;
+  display:grid;place-items:center;
+  background:var(--nb-yellow);color:var(--nb-black);
+  border:var(--b-sm);box-shadow:var(--s-sm);
+  font-family:var(--font-display);font-weight:800;font-size:1.35rem;line-height:1;
+  overflow:hidden;
+}
+.plugin-card__icon img{width:100%;height:100%;object-fit:cover}
+.plugin-card__meta{min-width:0;flex:1}
+.plugin-card__name{font-family:var(--font-display);font-weight:800;font-size:1rem;line-height:1.2;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plugin-card__author{font-family:var(--font-mono);font-size:.6875rem;color:#777;letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plugin-card__desc{
+  font-size:.8125rem;color:#555;line-height:1.5;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  min-height:2.4em;
+}
+.plugin-card__tags{display:flex;flex-wrap:wrap;gap:.3rem}
+.plugin-tag{
+  font-family:var(--font-mono);font-size:.625rem;font-weight:700;letter-spacing:.04em;
+  padding:.14rem .45rem;background:var(--nb-light);color:#333;
+  border:1.5px solid var(--nb-black);
+}
+.plugin-tag--warn{background:var(--nb-orange);color:var(--nb-white)}
+.plugin-card__foot{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.15rem}
+.plugin-card__version{font-family:var(--font-mono);font-size:.625rem;color:#888;letter-spacing:.06em}
+.plugin-card__go{
+  font-family:var(--font-mono);font-size:.625rem;font-weight:700;letter-spacing:.06em;
+  padding:.25rem .6rem;background:var(--nb-black);color:var(--nb-white);
+  transition:transform .25s var(--ease);
+}
+.plugin-card:hover .plugin-card__go{transform:translateX(4px)}
+
+.plugin-state{
+  padding:2rem 1.25rem;text-align:center;
+  background:var(--nb-white);border:var(--b-md);box-shadow:var(--s-md);
+  display:grid;gap:.55rem;justify-items:center;
+}
+.plugin-state__title{font-family:var(--font-display);font-weight:800;font-size:1.05rem}
+.plugin-state__text{font-size:.85rem;color:#666;line-height:1.6;max-width:44ch}
+.plugin-state code{font-family:var(--font-mono);font-size:.8em;padding:.15em .45em;background:var(--nb-black);color:var(--nb-yellow)}
+.plugin-state pre{
+  font-family:var(--font-mono);font-size:.7rem;line-height:1.55;
+  background:var(--nb-black);color:#fff;padding:.8rem .9rem;text-align:left;
+  overflow-x:auto;max-width:100%;border:var(--b-sm);box-shadow:var(--s-sm);
+  white-space:pre;
+}
+.plugin-scan{
+  display:grid;gap:.35rem;justify-items:center;
+}
+.plugin-scan__spinner{
+  width:28px;height:28px;border:3px solid var(--nb-black);border-top-color:transparent;
+  border-radius:50%;animation:pcspin .8s linear infinite;
+}
+@keyframes pcspin{to{transform:rotate(360deg)}}
+
+.plugin-loading{
+  width:100%;height:100%;
+  display:grid;align-content:center;justify-items:center;gap:.9rem;
+  padding:2rem 1.5rem;text-align:center;
+  background:var(--nb-light);
+}
+.plugin-loading__name{
+  font-family:var(--font-display);font-size:clamp(1.3rem,3vw,1.7rem);
+  font-weight:800;letter-spacing:-.02em;
+}
+.plugin-loading__stage{
+  font-family:var(--font-mono);font-size:.7rem;letter-spacing:.14em;
+  color:#777;text-transform:uppercase;min-height:1.1em;
+}
+.plugin-loading__bar{
+  width:min(320px,80%);height:14px;background:var(--nb-white);
+  border:var(--b-sm);box-shadow:var(--s-sm);overflow:hidden;
+}
+.plugin-loading__fill{
+  height:100%;width:0;background:var(--nb-pink);
+  transition:width .35s var(--ease);
+}
+.plugin-loading__pct{
+  font-family:var(--font-mono);font-size:.75rem;font-weight:700;letter-spacing:.1em;
+}
+
+.plugin-fail{
+  width:100%;height:100%;
+  display:grid;align-content:center;justify-items:center;gap:.75rem;
+  padding:2rem 1.5rem;text-align:center;background:var(--nb-light);
+}
+.plugin-fail__badge{
+  font-family:var(--font-mono);font-size:.625rem;font-weight:700;letter-spacing:.12em;
+  padding:.3rem .8rem;background:var(--nb-pink);color:var(--nb-white);
+  border:var(--b-sm);box-shadow:var(--s-sm);
+}
+.plugin-fail h3{
+  font-family:var(--font-display);font-size:1.15rem;font-weight:800;
+  max-width:32ch;line-height:1.35;
+}
+.plugin-fail dl{
+  display:grid;grid-template-columns:auto 1fr;gap:.35rem .9rem;
+  font-family:var(--font-mono);font-size:.7rem;text-align:left;
+  padding:.85rem 1rem;background:var(--nb-white);
+  border:var(--b-sm);box-shadow:var(--s-sm);max-width:100%;
+}
+.plugin-fail dt{color:#888;letter-spacing:.06em}
+.plugin-fail dd{color:var(--nb-black);word-break:break-all}
+.plugin-fail code{
+  font-family:var(--font-mono);font-size:.95em;padding:.1em .4em;
+  background:var(--nb-black);color:var(--nb-yellow);
+}
+.plugin-fail__btn{
+  margin-top:.35rem;padding:.6rem 1.2rem;
+  font-family:var(--font-display);font-size:.85rem;font-weight:800;
+  background:var(--nb-white);border:var(--b-sm);box-shadow:var(--s-sm);
+}
+.plugin-fail__btn:hover{background:var(--nb-yellow);transform:translate(-2px,-2px);box-shadow:var(--s-md)}
+
+.plugin-admin{display:grid;gap:.65rem}
+.plugin-admin__head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.2rem}
+.plugin-admin__title{font-family:var(--font-display);font-weight:800;font-size:.85rem}
+.plugin-admin__row{
+  display:grid;grid-template-columns:34px 1fr auto;gap:.7rem;align-items:center;
+  padding:.55rem .65rem;background:var(--nb-light);
+  border:var(--b-sm);
+}
+.plugin-admin__icon{
+  width:34px;height:34px;display:grid;place-items:center;
+  background:var(--nb-yellow);border:1.5px solid var(--nb-black);
+  font-family:var(--font-display);font-weight:800;font-size:.9rem;overflow:hidden;
+}
+.plugin-admin__icon img{width:100%;height:100%;object-fit:cover}
+.plugin-admin__meta{min-width:0}
+.plugin-admin__name{font-family:var(--font-display);font-weight:800;font-size:.8125rem;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plugin-admin__sub{font-family:var(--font-mono);font-size:.625rem;color:#777;letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plugin-admin__toggle{position:relative;display:inline-flex;align-items:center;cursor:pointer;user-select:none;flex-shrink:0}
+.plugin-admin__empty{
+  padding:1.1rem;text-align:center;font-size:.8125rem;color:#777;
+  background:var(--nb-light);border:1.5px dashed var(--nb-black);
+}
+
+.plugin-frame{
+  display:block;width:100%;height:100%;
+  border:0;background:transparent;color-scheme:light;
+}
+
+.mp{
+  position:fixed;z-index:1000;
+  left:1rem;
+  top:calc(1rem + env(safe-area-inset-top, 0px));
+  width:52px;height:52px;
+  font-family:var(--font-body);
+}
+.mp-fab{
+  position:absolute;inset:0;
+  width:52px;height:52px;
+  display:grid;place-items:center;
+  background:var(--nb-white);color:var(--nb-black);
+  border:var(--b-md);box-shadow:var(--s-md);
+  transform-origin:center;
+  cursor:pointer;
+  transition:transform var(--panel-pop-duration) var(--panel-pop-ease),
+             opacity var(--panel-fade-duration) ease,
+             background .15s ease,
+             color .15s ease,
+             box-shadow .15s ease;
+}
+.mp-fab:hover{
+  transform:translate(-3px,-3px);
+  box-shadow:var(--s-lg);
+  background:var(--nb-pink);
+  color:var(--nb-white);
+}
+.mp-fab:active{
+  transform:translate(1px,1px);
+  box-shadow:2px 2px 0 var(--nb-border);
+}
+.mp[data-expanded="true"] .mp-fab{
+  transform:scale(0);
+  opacity:0;
+  pointer-events:none;
+}
+
+.mp-panel{
+  position:absolute;
+  top:0;left:0;
+  width:min(340px, calc(100vw - 2rem));
+  background:var(--nb-white);
+  border:var(--b-lg);box-shadow:10px 10px 0 rgba(0,0,0,.9);
+  overflow:hidden;
+  transform-origin:26px 26px;
+  transform:scale(.35);
+  opacity:0;
+  pointer-events:none;
+  transition:transform var(--panel-pop-duration) var(--panel-pop-ease),
+             opacity var(--panel-fade-duration) ease;
+  will-change:transform, opacity;
+}
+.mp[data-expanded="true"] .mp-panel{
+  transform:scale(1);
+  opacity:1;
+  pointer-events:auto;
+}
+
+.mp-bar{
+  display:flex;align-items:center;gap:.4rem;
+  padding:.55rem .65rem;
+  background:var(--nb-black);color:var(--nb-white);
+}
+.mp-btn{
+  width:30px;height:30px;display:grid;place-items:center;flex-shrink:0;
+  background:var(--nb-white);color:var(--nb-black);
+  border:var(--b-sm);box-shadow:2px 2px 0 var(--nb-white);
+  transition:transform .12s ease, box-shadow .12s ease, background .12s ease, color .12s ease;
+}
+.mp-btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--nb-white);background:var(--nb-yellow)}
+.mp-btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--nb-white)}
+.mp-btn--play{background:var(--nb-yellow);color:var(--nb-black)}
+.mp-icon-pause{display:none}
+.mp.is-playing .mp-icon-play{display:none}
+.mp.is-playing .mp-icon-pause{display:block}
+
+.mp-info{flex:1;min-width:0;text-align:center;padding:0 .2rem}
+.mp-title{
+  font-family:var(--font-display);font-size:.75rem;font-weight:800;
+  line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.mp-time{
+  font-family:var(--font-mono);font-size:.6rem;letter-spacing:.06em;
+  color:#bbb;margin-top:.15rem;
+}
+.mp-icon-btn{
+  width:26px;height:26px;display:grid;place-items:center;flex-shrink:0;
+  background:transparent;color:var(--nb-white);border:none;
+  transition:transform .2s var(--ease), color .15s ease;
+}
+.mp-icon-btn:hover{color:var(--nb-yellow)}
+.mp-icon-btn:active{transform:scale(.9)}
+.mp[data-list="open"] #mpListToggle svg{transform:rotate(180deg)}
+#mpListToggle svg{transition:transform .25s var(--ease)}
+
+.mp-progress{
+  height:10px;background:var(--nb-light);
+  border-bottom:var(--b-sm);cursor:pointer;position:relative;
+  overflow:hidden;
+}
+.mp-progress__fill{
+  height:100%;width:0;background:var(--nb-pink);
+  transition:width .12s linear;
+}
+
+.mp-list-wrap{
+  max-height:0;overflow:hidden;
+  transition:max-height .35s var(--ease);
+}
+.mp[data-list="open"] .mp-list-wrap{max-height:220px;overflow-y:auto}
+.mp-list{padding:.4rem;display:flex;flex-direction:column;gap:.3rem}
+.mp-item{
+  display:flex;align-items:center;gap:.6rem;
+  padding:.5rem .6rem;font-size:.78rem;
+  background:var(--nb-light);border:var(--b-sm);
+  cursor:pointer;text-align:left;width:100%;
+  transition:transform .12s ease, background .15s ease;
+}
+.mp-item:hover{background:var(--nb-yellow);transform:translate(-1px,-1px)}
+.mp-item:active{transform:translate(1px,1px)}
+.mp-item.is-active{background:var(--nb-pink);color:var(--nb-white)}
+.mp-item__idx{
+  font-family:var(--font-mono);font-size:.65rem;
+  width:1.6em;text-align:center;flex-shrink:0;opacity:.7;
+}
+.mp-item__name{
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.mp-list-empty{
+  padding:1rem;text-align:center;font-size:.72rem;color:#888;
+  font-family:var(--font-mono);letter-spacing:.06em;
+  border:1.5px dashed var(--nb-black);background:var(--nb-white);
+}
+
+@media (min-width:761px){
+  .mp{left:2rem;top:2rem}
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= 音乐播放器 ================= -->
+<div class="mp" id="mp" data-expanded="false" data-list="closed">
+  <button class="mp-fab" id="mpFab" type="button"
+          aria-label="音乐播放器" aria-expanded="false" aria-controls="mpPanel">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M9 18V5l12-2v13"/>
+      <circle cx="6" cy="18" r="3"/>
+      <circle cx="18" cy="16" r="3"/>
+    </svg>
+  </button>
+
+  <div class="mp-panel" id="mpPanel" role="region" aria-label="音乐播放器">
+    <div class="mp-bar">
+      <button class="mp-btn" id="mpPrev" type="button" aria-label="上一首">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+        </svg>
+      </button>
+
+      <button class="mp-btn mp-btn--play" id="mpPlay" type="button" aria-label="播放">
+        <svg class="mp-icon-play" width="16" height="16" viewBox="0 0 24 24"
+             fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        <svg class="mp-icon-pause" width="16" height="16" viewBox="0 0 24 24"
+             fill="currentColor" aria-hidden="true"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>
+      </button>
+
+      <button class="mp-btn" id="mpNext" type="button" aria-label="下一首">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/>
+        </svg>
+      </button>
+
+      <div class="mp-info">
+        <div class="mp-title" id="mpTitle">未选择歌曲</div>
+        <div class="mp-time" id="mpTime">0:00 / 0:00</div>
+      </div>
+
+      <button class="mp-icon-btn" id="mpReload" type="button" aria-label="重新加载歌单">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+      </button>
+
+      <button class="mp-icon-btn" id="mpListToggle" type="button"
+              aria-label="播放列表" aria-expanded="false" aria-controls="mpList">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+
+      <button class="mp-icon-btn" id="mpCollapse" type="button" aria-label="收起播放器">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="6 15 12 9 18 15"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="mp-progress" id="mpProgress" aria-label="播放进度">
+      <div class="mp-progress__fill" id="mpProgressFill"></div>
+    </div>
+
+    <div class="mp-list-wrap">
+      <div class="mp-list" id="mpList" role="listbox" aria-label="播放列表"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 背景 ================= -->
+<div class="bg-layer" aria-hidden="true">
+  <div class="blob blob--1"></div>
+  <div class="blob blob--2"></div>
+  <div class="blob blob--3"></div>
+  <canvas id="particles"></canvas>
+  <div class="noise"></div>
+</div>
+
+<main class="page">
+  <div class="page-deco" aria-hidden="true">
+    <span class="deco-line"></span>
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+      <rect x="3" y="3" width="28" height="28" fill="#FF1493" stroke="#000" stroke-width="2"/>
+      <path d="M17 8l1.8 6.2L25 16l-6.2 1.8L17 24l-1.8-6.2L9 16l6.2-1.8L17 8z" fill="#FFE135" stroke="#000" stroke-width="1.2"/>
+    </svg>
+    <span class="deco-badge">DIGITAL PLAYGROUND</span>
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+      <circle cx="17" cy="17" r="14" fill="#32CD32" stroke="#000" stroke-width="2"/>
+      <path d="M17 10l2 5.5 5.5 2-5.5 2-2 5.5-2-5.5L9.5 17.5l5.5-2 2-5.5z" fill="#fff" stroke="#000" stroke-width="1.2"/>
+    </svg>
+    <span class="deco-line"></span>
+  </div>
+
+  <div class="page-title"><h1>啥都<em>vibe</em>一点</h1></div>
+  <p class="subtitle">EXPERIMENT · CREATE · PLAY</p>
+
+  <section class="actions" id="actionsGrid" aria-label="主页入口"></section>
+</main>
+
+<footer class="site-footer">© 2026 · 啥都 vibe 一点</footer>
+
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<!-- ================= Viewer ================= -->
+<div class="viewer" id="viewer" inert>
+  <div class="viewer-scrim" id="viewerScrim"></div>
+  <div class="viewer-panel" id="viewerPanel">
+    <div class="viewer-stage" id="viewerStage"></div>
+    <button class="viewer-close close-btn" id="viewerClose" type="button" aria-label="关闭">✕</button>
+  </div>
+</div>
+
+<!-- ================= Plugin Preview ================= -->
+<div class="plugin-preview" id="pluginPreview" role="dialog" aria-modal="true"
+     aria-labelledby="pluginPreviewTitle" inert>
+  <div class="plugin-preview__scrim" id="pluginPreviewScrim"></div>
+  <div class="plugin-preview__panel">
+    <button class="plugin-preview__close close-btn" id="pluginPreviewClose" type="button" aria-label="关闭">✕</button>
+    <div id="pluginPreviewBody"></div>
+  </div>
+</div>
+
+<!-- ================= Continue Modal ================= -->
+<div class="continue-modal" id="continueModal" role="dialog" aria-modal="true" inert>
+  <div class="continue-scrim" id="continueScrim"></div>
+  <div class="continue-panel">
+    <button class="continue-close close-btn" id="continueClose" type="button" aria-label="关闭">✕</button>
+    <div id="continueBody"></div>
+  </div>
+</div>
+
+<!-- ================= Video Modal（查看更新计划 · 全屏视频） ================= -->
+<div class="video-modal" id="videoModal" role="dialog" aria-modal="true"
+     aria-label="更新计划" inert>
+  <div class="video-modal__scrim" id="videoModalScrim"></div>
+  <div class="video-modal__stage">
+    <!--
+      关键点：
+      1. src 直接写在 HTML 里（浏览器会自行处理路径中的空格）
+      2. 不放 encodeURI，也不在 JS 里 setAttribute，避免路径被二次编码
+      3. 若一个文件播不了，可以并列多个 <source>，浏览器会按顺序尝试
+    -->
+    <video class="video-modal__player" id="videoModalPlayer"
+           controls playsinline preload="metadata"
+           src="assets/Easter egg.mkv">
+      <track id="videoModalTrack" kind="subtitles"
+             src="assets/Easter egg.vtt" srclang="zh" label="中文" default>
+      你的浏览器不支持 video 标签。
+    </video>
+    <div class="video-modal__error" id="videoModalError"></div>
+  </div>
+  <button class="video-modal__close close-btn" id="videoModalClose"
+          type="button" aria-label="关闭">✕</button>
+</div>
+
+<!-- ================= Settings ================= -->
+<button id="settingsButton" class="settings-button" type="button"
+        aria-label="打开设置" aria-expanded="false" aria-controls="settingsPanel">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+</button>
+
+<div id="settingsPanel" class="settings-panel" role="dialog" aria-modal="false"
+     aria-labelledby="settingsTitle" aria-hidden="true" inert>
+  <div class="settings-header">
+    <h2 id="settingsTitle">设置</h2>
+    <button type="button" class="settings-close" id="settingsClose" aria-label="关闭设置">✕</button>
+  </div>
+
+  <div class="settings-tabs">
+    <button type="button" class="settings-tab is-active" data-tab="appearance">外观</button>
+    <button type="button" class="settings-tab" data-tab="plugins">插件管理</button>
+  </div>
+
+  <div class="settings-view is-active" data-view="appearance">
+    <div class="settings-list">
+      <label class="setting-item">
+        <span class="setting-item__text"><strong>动态光斑</strong><small>背景彩色光影漂移</small></span>
+        <input class="setting-input" type="checkbox" data-setting="blobs">
+        <span class="setting-switch"></span>
+      </label>
+      <label class="setting-item">
+        <span class="setting-item__text"><strong>粒子背景</strong><small>漂浮粒子 + 鼠标斥力</small></span>
+        <input class="setting-input" type="checkbox" data-setting="particles">
+        <span class="setting-switch"></span>
+      </label>
+      <label class="setting-item">
+        <span class="setting-item__text"><strong>噪点质感</strong><small>SVG 噪点纹理叠加</small></span>
+        <input class="setting-input" type="checkbox" data-setting="noise">
+        <span class="setting-switch"></span>
+      </label>
+      <label class="setting-item">
+        <span class="setting-item__text"><strong>卡片动效</strong><small>悬停倾斜 / 位移 / 3D 指针</small></span>
+        <input class="setting-input" type="checkbox" data-setting="cardMotion">
+        <span class="setting-switch"></span>
+      </label>
+      <label class="setting-item">
+        <span class="setting-item__text"><strong>入场动画</strong><small>标题与卡片的出现动效</small></span>
+        <input class="setting-input" type="checkbox" data-setting="entranceAnimation">
+        <span class="setting-switch"></span>
+      </label>
+      <label class="setting-item">
+        <span class="setting-item__text"><strong>Viewer 模糊</strong><small>打开面板时页面虚化</small></span>
+        <input class="setting-input" type="checkbox" data-setting="viewerBlur">
+        <span class="setting-switch"></span>
+      </label>
+    </div>
+    <button type="button" class="settings-reset" id="settingsReset">恢复默认</button>
+  </div>
+
+  <div class="settings-view" data-view="plugins">
+    <div id="pluginAdminMount"></div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   啥都vibe一点 — 插件运行时 2.1
+   ----------------------------------------------------------------
+   本次更新（2.2）：
+     · VideoModal 修复：src 直接写在 HTML，不再用 JS 动态编码
+     · 视频加载失败时在屏幕上显示具体错误信息
+     · 打开弹窗时不再显式调 load()，交给浏览器按需加载
+     · ESC 优先关闭视频
+
+   历史更新（2.1）：
+     · 插件 iframe 内部自动滚动、plugin.scroll API
+
+   历史更新（2.0）：
+     · 主页面动态插件快捷方式 / manifest window 自定义尺寸
+     · 弹窗动画统一 / 关闭按钮统一 / 音乐按钮置顶
+   ================================================================ */
+(function () {
+  'use strict';
+
+  /* ==========================================================
+     0. 常量
+     ========================================================== */
+  const API_VERSION       = '2.0';
+  const PLUGIN_ROOT       = 'installed/';
+  const DISCOVERY_TIMEOUT = 4000;
+  const SETTINGS_KEY      = 'vibe-settings-v1';
+  const SHORTCUT_KEY_PFX  = 'vibe.plugin.shortcut.';
+
+  /* ==========================================================
+     1. 通用工具
+     ========================================================== */
+  const $  = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isDesktop      = () => window.matchMedia('(min-width: 1101px)').matches;
+  const isFinePointer  = window.matchMedia('(pointer: fine)').matches;
+  const vw = () => document.documentElement.clientWidth  || window.innerWidth;
+  const vh = () => document.documentElement.clientHeight || window.innerHeight;
+  const CLOSE_DURATION = 820;
+
+  function escapeHTML(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function withTimeout(promise, ms, fallback) {
+    return Promise.race([
+      promise,
+      new Promise(res => setTimeout(() => res(fallback), ms))
+    ]);
+  }
+
+  async function fetchJSON(url, opts) {
+    const res = await fetch(url, Object.assign({ cache: 'no-cache' }, opts || {}));
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' @ ' + url);
+    return res.json();
+  }
+
+  window.__vibeIconFallback = function (img, letter) {
+    if (!img || !img.parentNode) return;
+    img.parentNode.textContent = letter || '?';
+  };
+
+  /* ==========================================================
+     1.2 音乐按钮避让区
+     ========================================================== */
+  const MUSIC_FAB = {
+    size: 52,
+    gap: 12,
+    inset() {
+      return window.matchMedia('(min-width: 761px)').matches ? 32 : 16;
+    },
+    rect() {
+      const off = this.inset();
+      return {
+        left:   off,
+        top:    off,
+        right:  off + this.size,
+        bottom: off + this.size
+      };
+    }
+  };
+
+  /* ==========================================================
+     1.5 音乐播放器（内联版）
+     ========================================================== */
+  const MusicPlayer = (function () {
+    const PLAYLIST_URL = 'music/playlist.json';
+    const DEFAULT_PLAYLIST = [
+      { title: 'Track 01', src: 'music/track-01.mp3' },
+      { title: 'Track 02', src: 'music/track-02.mp3' },
+      { title: 'Track 03', src: 'music/track-03.mp3' }
+    ];
+    let PLAYLIST = DEFAULT_PLAYLIST.slice();
+    let playlistLoaded = false;
+    let root = null, audio = null, els = {}, currentIndex = -1, ready = false;
+
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function fmt(t) {
+      if (!isFinite(t) || t < 0) t = 0;
+      const m = Math.floor(t / 60);
+      const s = Math.floor(t % 60);
+      return m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    async function fetchPlaylist() {
+      const res = await fetch(PLAYLIST_URL, { cache: 'no-cache' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const raw = Array.isArray(data)
+        ? data
+        : (data && Array.isArray(data.tracks) ? data.tracks : null);
+      if (!raw) throw new Error('playlist.json 格式错误（应为数组或 { tracks: [...] }）');
+      const list = raw.map((item, i) => {
+        const file = String(item.file || item.src || '').trim();
+        if (!file) return null;
+        const clean = file.replace(/^\.?\/?music\//, '');
+        return {
+          title: String(item.title || ('Track ' + String(i + 1).padStart(2, '0'))),
+          src: 'music/' + clean
+        };
+      }).filter(Boolean);
+      if (!list.length) throw new Error('playlist.json 里没有有效条目');
+      return list;
+    }
+
+    async function loadPlaylist(showResult) {
+      try {
+        const list = await fetchPlaylist();
+        PLAYLIST = list;
+        playlistLoaded = true;
+        if (currentIndex >= PLAYLIST.length) {
+          currentIndex = -1;
+          if (els.title) els.title.textContent = '未选择歌曲';
+        }
+        renderList();
+        if (currentIndex >= 0) setActive(currentIndex);
+        if (showResult) showToast('歌单已加载（' + PLAYLIST.length + ' 首）', 'info');
+        return true;
+      } catch (err) {
+        console.warn('[music] 无法读取 ' + PLAYLIST_URL + '，使用内置列表：', err.message);
+        if (!playlistLoaded) {
+          PLAYLIST = DEFAULT_PLAYLIST.slice();
+          renderList();
+        }
+        if (showResult) showToast('歌单加载失败：' + (err.message || '未知错误'), 'warn');
+        return false;
+      }
+    }
+
+    function renderList() {
+      if (!els.list) return;
+      if (!PLAYLIST.length) {
+        els.list.innerHTML = '<div class="mp-list-empty">播放列表为空</div>';
+        return;
+      }
+      els.list.innerHTML = PLAYLIST.map((s, i) =>
+        '<button class="mp-item" type="button" role="option" data-index="' + i + '">'
+        + '<span class="mp-item__idx">' + (i + 1) + '</span>'
+        + '<span class="mp-item__name">' + esc(s.title) + '</span>'
+        + '</button>'
+      ).join('');
+    }
+
+    function setActive(i) {
+      currentIndex = i;
+      const track = PLAYLIST[i];
+      if (els.title) els.title.textContent = track ? track.title : '未选择歌曲';
+      if (!els.list) return;
+      els.list.querySelectorAll('.mp-item').forEach(it => {
+        it.classList.toggle('is-active', Number(it.dataset.index) === i);
+      });
+    }
+
+    function load(i, autoplay) {
+      if (!PLAYLIST.length || i < 0 || i >= PLAYLIST.length) return;
+      setActive(i);
+      audio.src = PLAYLIST[i].src;
+      audio.load();
+      if (els.time) els.time.textContent = '0:00 / 0:00';
+      if (els.progressFill) els.progressFill.style.width = '0%';
+      if (autoplay) play();
+    }
+
+    function play() {
+      if (!PLAYLIST.length) { showToast('播放列表为空', 'warn'); return; }
+      if (currentIndex < 0) { load(0, true); return; }
+      audio.play().catch(err => {
+        root.classList.remove('is-playing');
+        showToast('播放失败：' + (err.message || '未知错误'), 'warn');
+      });
+    }
+    function pause() { audio.pause(); }
+    function toggle() { audio.paused ? play() : pause(); }
+
+    function prev() {
+      if (!PLAYLIST.length) return;
+      const n = PLAYLIST.length;
+      load((currentIndex - 1 + n) % n, true);
+    }
+    function next() {
+      if (!PLAYLIST.length) return;
+      const n = PLAYLIST.length;
+      load((currentIndex + 1) % n, true);
+    }
+
+    function setExpanded(v) {
+      root.dataset.expanded = v ? 'true' : 'false';
+      if (els.fab) els.fab.setAttribute('aria-expanded', String(!!v));
+    }
+    function toggleList() {
+      const open = root.dataset.list === 'open';
+      root.dataset.list = open ? 'closed' : 'open';
+      if (els.listToggle) els.listToggle.setAttribute('aria-expanded', String(!open));
+    }
+    function seek(e) {
+      if (!audio.duration) return;
+      const rect = els.progress.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      audio.currentTime = ratio * audio.duration;
+    }
+
+    function bind() {
+      els.fab        && els.fab.addEventListener('click', () => setExpanded(true));
+      els.collapse   && els.collapse.addEventListener('click', () => setExpanded(false));
+      els.play       && els.play.addEventListener('click', toggle);
+      els.prev       && els.prev.addEventListener('click', prev);
+      els.next       && els.next.addEventListener('click', next);
+      els.listToggle && els.listToggle.addEventListener('click', toggleList);
+      els.progress   && els.progress.addEventListener('click', seek);
+      els.reload     && els.reload.addEventListener('click', () => loadPlaylist(true));
+
+      if (els.list) {
+        els.list.addEventListener('click', e => {
+          const item = e.target.closest('.mp-item');
+          if (!item) return;
+          load(Number(item.dataset.index), true);
+        });
+      }
+
+      audio.addEventListener('timeupdate', () => {
+        const cur = audio.currentTime || 0;
+        const dur = audio.duration || 0;
+        if (els.time) els.time.textContent = fmt(cur) + ' / ' + fmt(dur);
+        if (els.progressFill && dur > 0) {
+          els.progressFill.style.width = (cur / dur * 100) + '%';
+        }
+      });
+      audio.addEventListener('loadedmetadata', () => {
+        if (els.time) els.time.textContent = fmt(0) + ' / ' + fmt(audio.duration);
+      });
+      audio.addEventListener('play',  () => root.classList.add('is-playing'));
+      audio.addEventListener('pause', () => root.classList.remove('is-playing'));
+      audio.addEventListener('ended', next);
+      audio.addEventListener('error', () => {
+        root.classList.remove('is-playing');
+        if (audio.src) {
+          const cur = PLAYLIST[currentIndex];
+          showToast('无法播放：' + (cur ? cur.src : '未知文件'), 'warn');
+        }
+      });
+    }
+
+    function init(scope) {
+      if (ready) return;
+      root = (scope || document).querySelector('#mp');
+      if (!root) return;
+      els = {
+        fab:          root.querySelector('#mpFab'),
+        panel:        root.querySelector('#mpPanel'),
+        play:         root.querySelector('#mpPlay'),
+        prev:         root.querySelector('#mpPrev'),
+        next:         root.querySelector('#mpNext'),
+        title:        root.querySelector('#mpTitle'),
+        time:         root.querySelector('#mpTime'),
+        list:         root.querySelector('#mpList'),
+        listToggle:   root.querySelector('#mpListToggle'),
+        collapse:     root.querySelector('#mpCollapse'),
+        reload:       root.querySelector('#mpReload'),
+        progress:     root.querySelector('#mpProgress'),
+        progressFill: root.querySelector('#mpProgressFill')
+      };
+      audio = new Audio();
+      audio.preload = 'metadata';
+      bind();
+      renderList();
+      ready = true;
+      loadPlaylist(false);
+    }
+
+    return {
+      init, play, pause, toggle, prev, next, load, loadPlaylist,
+      get audio() { return audio; },
+      get playlist() { return PLAYLIST.slice(); }
+    };
+  })();
+
+  /* ==========================================================
+     2. Toast
+     ========================================================== */
+  const toastStack = $('#toastStack');
+  function showToast(message, level) {
+    if (!toastStack || !message) return;
+    const el = document.createElement('div');
+    el.className = 'toast toast--' + (level || 'info');
+    el.textContent = message;
+    toastStack.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('is-in'));
+    setTimeout(() => {
+      el.classList.remove('is-in');
+      setTimeout(() => el.remove(), 300);
+    }, 2600);
+  }
+  window.__vibeToast = showToast;
+
+  /* ==========================================================
+     3. 设置系统
+     ========================================================== */
+  const DEFAULT_SETTINGS = {
+    blobs: true, particles: true, noise: true,
+    cardMotion: true, entranceAnimation: true, viewerBlur: true
+  };
+  let SETTINGS = Object.assign({}, DEFAULT_SETTINGS);
+
+  const SettingsManager = {
+    load() {
+      try {
+        const raw = localStorage.getItem(SETTINGS_KEY);
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        if (s && typeof s === 'object') SETTINGS = Object.assign({}, DEFAULT_SETTINGS, s);
+      } catch (e) {}
+    },
+    save() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(SETTINGS)); } catch (e) {} },
+    set(k, v) {
+      if (!(k in DEFAULT_SETTINGS)) return;
+      SETTINGS[k] = !!v; this.save();
+      EffectsManager.apply(k);
+    },
+    reset() {
+      SETTINGS = Object.assign({}, DEFAULT_SETTINGS);
+      this.save(); EffectsManager.applyAll(); SettingsUI.sync();
+    },
+    get(k) { return SETTINGS[k]; }
+  };
+
+  /* ==========================================================
+     4. 特效
+     ========================================================== */
+  const EffectsManager = {
+    apply(k) {
+      switch (k) {
+        case 'blobs':             this.applyBlobs(); break;
+        case 'noise':             this.applyNoise(); break;
+        case 'cardMotion':        this.applyCardMotion(); break;
+        case 'entranceAnimation': this.applyEntranceAnimation(); break;
+        case 'viewerBlur':        this.applyViewerBlur(); break;
+        case 'particles':         this.applyParticles(); break;
+      }
+    },
+    applyAll() {
+      this.applyBlobs(); this.applyNoise(); this.applyCardMotion();
+      this.applyEntranceAnimation(); this.applyViewerBlur(); this.applyParticles();
+    },
+    applyBlobs()             { document.documentElement.classList.toggle('fx-no-blobs', !SETTINGS.blobs); },
+    applyNoise()             { document.documentElement.classList.toggle('fx-no-noise', !SETTINGS.noise); },
+    applyCardMotion()        { document.documentElement.classList.toggle('fx-no-card-motion', !SETTINGS.cardMotion); },
+    applyEntranceAnimation() { document.documentElement.classList.toggle('fx-no-entrance', !SETTINGS.entranceAnimation); },
+    applyViewerBlur()        { document.documentElement.classList.toggle('fx-no-viewer-blur', !SETTINGS.viewerBlur); },
+    applyParticles() {
+      document.documentElement.classList.toggle('fx-no-particles', !SETTINGS.particles);
+      SETTINGS.particles ? ParticleSystem.start() : ParticleSystem.stop();
+    }
+  };
+
+  /* ==========================================================
+     5. 粒子
+     ========================================================== */
+  const ParticleSystem = (function () {
+    const canvas = $('#particles');
+    if (!canvas) return { start(){}, stop(){} };
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return { start(){}, stop(){} };
+    const enableMouseForce = isFinePointer && !prefersReduced;
+    const REPEL_R = 140, REPEL_R2 = REPEL_R * REPEL_R;
+    const mouse = { x: -9999, y: -9999, active: false };
+    let W = 0, H = 0, particles = [], rafId = null, running = false, paused = false;
+    let mouseBound = false, resizeBound = false, resizeTimer = null;
+
+    function bindMouse() {
+      if (mouseBound || !enableMouseForce) return;
+      mouseBound = true;
+      window.addEventListener('pointermove', e => {
+        if (e.pointerType && e.pointerType !== 'mouse') return;
+        mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true;
+      }, { passive: true });
+      window.addEventListener('pointerleave', () => mouse.active = false);
+      window.addEventListener('blur',         () => mouse.active = false);
+    }
+    function bindResize() {
+      if (resizeBound) return;
+      resizeBound = true;
+      window.addEventListener('resize', () => {
+        if (!running) return;
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => { resize(); if (paused) drawStatic(); }, 150);
+      });
+    }
+    function spawn(anywhere) {
+      const vx = (Math.random() - 0.5) * 0.16;
+      const vy = -(Math.random() * 0.3 + 0.08);
+      return { x: Math.random() * W, y: anywhere ? Math.random() * H : H + 10,
+        r: Math.random() * 1.6 + 0.5, vx, vy, baseVx: vx, baseVy: vy,
+        a: Math.random() * 0.35 + 0.08, phase: Math.random() * Math.PI * 2 };
+    }
+    function build() {
+      const max = paused ? 30 : (isFinePointer ? 150 : 110);
+      const n = Math.max(24, Math.min(max, Math.floor(W * H / 14000)));
+      particles = [];
+      for (let i = 0; i < n; i++) particles.push(spawn(true));
+    }
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth; H = window.innerHeight;
+      canvas.width  = Math.floor(W * dpr);
+      canvas.height = Math.floor(H * dpr);
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      build();
+    }
+    function step() {
+      ctx.clearRect(0, 0, W, H);
+      const useForce = enableMouseForce && mouse.active;
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        if (useForce) {
+          const dx = p.x - mouse.x, dy = p.y - mouse.y;
+          const d2 = dx*dx + dy*dy;
+          if (d2 < REPEL_R2 && d2 > 0.01) {
+            const d = Math.sqrt(d2);
+            const f = (REPEL_R - d) / REPEL_R;
+            p.vx += (dx / d) * f * 0.42;
+            p.vy += (dy / d) * f * 0.42;
+          }
+        }
+        p.vx += (p.baseVx - p.vx) * 0.045;
+        p.vy += (p.baseVy - p.vy) * 0.045;
+        p.x += p.vx; p.y += p.vy; p.phase += 0.02;
+        if (p.y < -12) { p.y = H + 12; p.x = Math.random() * W; }
+        if (p.x < -12) p.x = W + 12; else if (p.x > W + 12) p.x = -12;
+        const a = p.a * (0.65 + 0.35 * Math.sin(p.phase));
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(10,10,10,' + a.toFixed(3) + ')'; ctx.fill();
+      }
+    }
+    function drawStatic() {
+      ctx.clearRect(0, 0, W, H);
+      particles.forEach(p => {
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(10,10,10,' + p.a.toFixed(3) + ')'; ctx.fill();
+      });
+    }
+    function loop() {
+      if (!running || paused) return;
+      step();
+      rafId = requestAnimationFrame(loop);
+    }
+    function start() {
+      if (running) return;
+      running = true; paused = prefersReduced;
+      bindMouse(); bindResize(); resize();
+      if (paused) drawStatic(); else rafId = requestAnimationFrame(loop);
+    }
+    function stop() {
+      if (!running) return;
+      running = false;
+      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles = [];
+    }
+    return { start, stop };
+  })();
+
+  /* ==========================================================
+     6. AssetManager
+     ========================================================== */
+  const AssetManager = (function () {
+    const imageCache = new Map();
+    const blobCache  = new Map();
+    const textCache  = new Map();
+
+    function baseURLFor(folder) {
+      return new URL(PLUGIN_ROOT + encodeURIComponent(folder) + '/', location.href);
+    }
+
+    function resolve(folder, relPath) {
+      if (!relPath) return null;
+      try {
+        const base = baseURLFor(folder);
+        if (/(^|\/)\.\.(\/|$)/.test(String(relPath))) return null;
+        const url = new URL(relPath, base);
+        if (!url.href.startsWith(base.href)) return null;
+        return url.href;
+      } catch (e) { return null; }
+    }
+
+    async function loadImage(folder, relPath) {
+      const url = resolve(folder, relPath);
+      if (!url) throw new Error('无效的图片路径：' + relPath);
+      if (imageCache.has(url)) return imageCache.get(url);
+      const img = new Image();
+      img.decoding = 'async';
+      const p = new Promise((res, rej) => {
+        img.onload  = () => res(img);
+        img.onerror = () => rej(new Error('图片加载失败：' + relPath));
+      });
+      img.src = url;
+      imageCache.set(url, img);
+      await p;
+      return img;
+    }
+
+    function imageSync(folder, relPath) {
+      const url = resolve(folder, relPath);
+      if (!url) return null;
+      if (imageCache.has(url)) return imageCache.get(url);
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+      imageCache.set(url, img);
+      return img;
+    }
+
+    async function loadBlob(folder, relPath) {
+      const url = resolve(folder, relPath);
+      if (!url) throw new Error('无效的资源路径：' + relPath);
+      if (blobCache.has(url)) return blobCache.get(url);
+      const p = fetch(url).then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.blob();
+      });
+      blobCache.set(url, p);
+      return p;
+    }
+
+    async function loadText(folder, relPath) {
+      const url = resolve(folder, relPath);
+      if (!url) throw new Error('无效的文本路径：' + relPath);
+      if (textCache.has(url)) return textCache.get(url);
+      const p = fetch(url, { cache: 'no-cache' }).then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status + ' @ ' + relPath);
+        return r.text();
+      });
+      textCache.set(url, p);
+      return p;
+    }
+
+    return { resolve, loadImage, imageSync, loadBlob, loadText };
+  })();
+
+  /* ==========================================================
+     7. MediaManager
+     ========================================================== */
+  const MediaManager = (function () {
+    const pool = new Set();
+    let masterVolume = 1;
+
+    function register(media) { pool.add(media); return media; }
+    function unregister(media) { pool.delete(media); }
+
+    function pauseAll() {
+      pool.forEach(m => { try { m.pause(); } catch (e) {} });
+    }
+    function stopAll() {
+      pool.forEach(m => {
+        try {
+          m.pause();
+          if (typeof m.currentTime === 'number') m.currentTime = 0;
+        } catch (e) {}
+      });
+      pool.clear();
+    }
+    function setMasterVolume(v) {
+      masterVolume = Math.max(0, Math.min(1, Number(v) || 0));
+      pool.forEach(m => { try { m.volume = masterVolume; } catch (e) {} });
+    }
+
+    async function playAudio(folder, relPath, opts) {
+      opts = opts || {};
+      const url = AssetManager.resolve(folder, relPath);
+      if (!url) throw new Error('无效的音频路径：' + relPath);
+      const a = new Audio(url);
+      if (opts.loop)   a.loop = true;
+      a.volume = (opts.volume != null ? Math.max(0, Math.min(1, opts.volume)) : 1) * masterVolume;
+      register(a);
+      a.addEventListener('ended', () => unregister(a), { once: true });
+      await a.play();
+      return a;
+    }
+
+    async function createVideo(folder, relPath, opts) {
+      opts = opts || {};
+      const url = AssetManager.resolve(folder, relPath);
+      if (!url) throw new Error('无效的视频路径：' + relPath);
+      const v = document.createElement('video');
+      v.src = url;
+      v.preload = opts.preload || 'metadata';
+      if (opts.loop)     v.loop = true;
+      if (opts.muted)    v.muted = true;
+      if (opts.controls !== false) v.controls = true;
+      v.volume = (opts.volume != null ? opts.volume : 1) * masterVolume;
+      v.playsInline = true;
+      register(v);
+      v.addEventListener('ended', () => { if (!v.loop) unregister(v); }, { once: false });
+      return v;
+    }
+
+    return {
+      playAudio, createVideo, stopAll, pauseAll,
+      setMasterVolume, register, unregister,
+      getMasterVolume() { return masterVolume; }
+    };
+  })();
+
+  /* ==========================================================
+     8. PluginLoader
+     ========================================================== */
+  const PluginLoader = (function () {
+
+    function resolveContainer(container, doc) {
+      if (!container) return doc.body;
+      if (typeof container === 'string') {
+        return doc.querySelector(container) || doc.body;
+      }
+      if (container && container.nodeType === 1) return container;
+      return doc.body;
+    }
+
+    function applyMediaProps(el, opts) {
+      if (!opts) return;
+      if (opts.id) el.id = opts.id;
+      if (opts.title) el.title = opts.title;
+      if (opts.className) {
+        el.className = el.className ? (el.className + ' ' + opts.className) : opts.className;
+      }
+      if (opts.style) {
+        if (typeof opts.style === 'object') Object.assign(el.style, opts.style);
+        else el.setAttribute('style', opts.style);
+      }
+      if (opts.width != null)  el.style.width  = typeof opts.width  === 'number' ? opts.width  + 'px' : opts.width;
+      if (opts.height != null) el.style.height = typeof opts.height === 'number' ? opts.height + 'px' : opts.height;
+      if (opts.dataset && typeof opts.dataset === 'object') {
+        for (const k in opts.dataset) el.dataset[k] = opts.dataset[k];
+      }
+      if (opts.on && typeof opts.on === 'object') {
+        for (const ev in opts.on) {
+          if (typeof opts.on[ev] === 'function') el.addEventListener(ev, opts.on[ev]);
+        }
+      }
+      if (typeof opts.onClick === 'function') {
+        el.addEventListener('click', opts.onClick);
+      }
+    }
+
+    function createErrorPlaceholder(doc, title, src) {
+      const box = doc.createElement('div');
+      box.className = 'vibe-media-error';
+      const badge = doc.createElement('div');
+      badge.className = 'vibe-media-error__badge';
+      badge.textContent = title;
+      const code = doc.createElement('code');
+      code.textContent = src || '';
+      box.appendChild(badge);
+      box.appendChild(code);
+      return box;
+    }
+
+    function buildHostAPI(manifest, iframe, container) {
+      const folder = manifest._folder;
+      const doc    = iframe.contentDocument;
+
+      function el(tag, props, ...children) {
+        const node = doc.createElement(tag);
+        if (props && typeof props === 'object') {
+          for (const k in props) {
+            const v = props[k];
+            if (v == null) continue;
+            if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
+            else if (k === 'class' || k === 'className') node.className = v;
+            else if (k === 'dataset' && typeof v === 'object') Object.assign(node.dataset, v);
+            else if (k.startsWith('on') && typeof v === 'function') {
+              node.addEventListener(k.slice(2).toLowerCase(), v);
+            } else if (k === 'text') node.textContent = v;
+            else if (k === 'html') node.innerHTML = v;
+            else node.setAttribute(k, v);
+          }
+        }
+        children.forEach(c => {
+          if (c == null) return;
+          node.appendChild(typeof c === 'string' ? doc.createTextNode(c) : c);
+        });
+        return node;
+      }
+
+      function imageLoad(src) {
+        return AssetManager.loadImage(folder, src);
+      }
+
+      function imageCreate(src, opts) {
+        opts = opts || {};
+        const url = AssetManager.resolve(folder, src);
+        if (!url) return Promise.reject(new Error('无效的图片路径：' + src));
+
+        return new Promise((resolve, reject) => {
+          const img = doc.createElement('img');
+          img.decoding = 'async';
+          img.alt = opts.alt || '';
+          img.loading = opts.loading || 'eager';
+          applyMediaProps(img, opts);
+          img.onload  = () => resolve(img);
+          img.onerror = () => reject(new Error('图片加载失败：' + src));
+          img.src = url;
+        });
+      }
+
+      async function imageInsert(src, opts) {
+        opts = opts || {};
+        const container = resolveContainer(opts.container, doc);
+        try {
+          const img = await imageCreate(src, opts);
+          container.appendChild(img);
+          return img;
+        } catch (err) {
+          if (opts.errorPlaceholder !== false) {
+            const ph = createErrorPlaceholder(doc, '图片加载失败', src);
+            container.appendChild(ph);
+            return ph;
+          }
+          throw err;
+        }
+      }
+
+      async function imageGallery(items, opts) {
+        opts = opts || {};
+        const container = resolveContainer(opts.container, doc);
+        const wrapper = doc.createElement('div');
+        wrapper.className = 'vibe-media-gallery' + (opts.className ? ' ' + opts.className : '');
+        if (opts.style) Object.assign(wrapper.style, opts.style);
+        container.appendChild(wrapper);
+
+        const list = Array.isArray(items) ? items : [];
+        const results = await Promise.all(list.map(item => {
+          const src = typeof item === 'string' ? item : (item && (item.src || item.file)) || '';
+          const extra = typeof item === 'string' ? {} : item;
+          const merged = Object.assign({}, opts, extra, { container: wrapper });
+          delete merged.className;
+          delete merged.style;
+          return imageInsert(src, merged);
+        }));
+        return { wrapper, items: results };
+      }
+
+      async function imageInfo(src) {
+        const img = await AssetManager.loadImage(folder, src);
+        return { width: img.naturalWidth, height: img.naturalHeight };
+      }
+
+      async function videoCreate(src, opts) {
+        opts = opts || {};
+        const v = await MediaManager.createVideo(folder, src, opts);
+        applyMediaProps(v, opts);
+        if (opts.waitMetadata !== false) {
+          await new Promise(resolve => {
+            if (v.readyState >= 1) return resolve();
+            let done = false;
+            const finish = () => { if (!done) { done = true; resolve(); } };
+            v.addEventListener('loadedmetadata', finish, { once: true });
+            v.addEventListener('error',          finish, { once: true });
+            setTimeout(finish, 5000);
+          });
+        }
+        return v;
+      }
+
+      async function videoInsert(src, opts) {
+        opts = opts || {};
+        const container = resolveContainer(opts.container, doc);
+        try {
+          const v = await videoCreate(src, opts);
+          container.appendChild(v);
+          if (opts.autoplay) {
+            try { await v.play(); } catch (e) {}
+          }
+          return v;
+        } catch (err) {
+          if (opts.errorPlaceholder !== false) {
+            const ph = createErrorPlaceholder(doc, '视频加载失败', src);
+            container.appendChild(ph);
+            return ph;
+          }
+          throw err;
+        }
+      }
+
+      async function audioInsert(src, opts) {
+        opts = opts || {};
+        const url = AssetManager.resolve(folder, src);
+        if (!url) throw new Error('无效的音频路径：' + src);
+
+        const a = doc.createElement('audio');
+        a.src = url;
+        a.preload = opts.preload || 'metadata';
+        a.controls = opts.controls !== false;
+        if (opts.loop)  a.loop = true;
+        if (opts.muted) a.muted = true;
+        a.volume = (opts.volume != null ? Math.max(0, Math.min(1, opts.volume)) : 1)
+                 * MediaManager.getMasterVolume();
+
+        applyMediaProps(a, opts);
+        MediaManager.register(a);
+
+        const container = resolveContainer(opts.container, doc);
+        container.appendChild(a);
+
+        if (opts.autoplay) {
+          try { await a.play(); } catch (e) {}
+        }
+        return a;
+      }
+
+      async function textRead(src) { return AssetManager.loadText(folder, src); }
+      async function textLines(src) {
+        const t = await AssetManager.loadText(folder, src);
+        return t.split(/\r?\n/);
+      }
+      async function textJSON(src) {
+        const t = await AssetManager.loadText(folder, src);
+        return JSON.parse(t);
+      }
+
+      function scrollEl() {
+        return doc.scrollingElement || doc.documentElement;
+      }
+      function viewportH() {
+        return doc.documentElement.clientHeight || 0;
+      }
+      function maxTop() {
+        return Math.max(0, scrollEl().scrollHeight - viewportH());
+      }
+      function smoothBehavior(smooth) {
+        return (smooth === false || prefersReduced) ? 'auto' : 'smooth';
+      }
+
+      const scrollAPI = {
+        get top()         { return scrollEl().scrollTop; },
+        get height()      { return scrollEl().scrollHeight; },
+        get viewport()    { return viewportH(); },
+        get max()         { return maxTop(); },
+        get hasOverflow() { return maxTop() > 1; },
+        el() { return scrollEl(); },
+        to(y, smooth) {
+          const target = Math.max(0, Math.min(Number(y) || 0, maxTop()));
+          const node = scrollEl();
+          if (smoothBehavior(smooth) === 'auto') node.scrollTop = target;
+          else node.scrollTo({ top: target, behavior: 'smooth' });
+        },
+        by(dy, smooth) {
+          this.to(this.top + (Number(dy) || 0), smooth);
+        },
+        toTop(smooth)    { this.to(0, smooth); },
+        toBottom(smooth) { this.to(this.max, smooth); },
+        intoView(node, opts) {
+          if (!node || typeof node.scrollIntoView !== 'function') return;
+          node.scrollIntoView(Object.assign(
+            { behavior: smoothBehavior(true), block: 'nearest' },
+            opts || {}
+          ));
+        }
+      };
+
+      const api = {
+        id: manifest.id,
+        name: manifest.name,
+        version: manifest.version,
+        apiVersion: API_VERSION,
+        manifest,
+
+        toast(msg, level) { showToast(msg, level); },
+        notify(msg, level) { showToast(msg, level); },
+        log(...args) { console.log('[plugin:' + manifest.id + ']', ...args); },
+
+        assets: {
+          resolve:   (p) => AssetManager.resolve(folder, p),
+          image:     (p) => AssetManager.loadImage(folder, p),
+          imageSync: (p) => AssetManager.imageSync(folder, p),
+          blob:      (p) => AssetManager.loadBlob(folder, p),
+          text:      (p) => AssetManager.loadText(folder, p),
+          audio:     (p) => MediaManager.playAudio(folder, p),
+          video:     (p, opts) => MediaManager.createVideo(folder, p, opts)
+        },
+
+        image: {
+          load:    imageLoad,
+          create:  imageCreate,
+          insert:  imageInsert,
+          gallery: imageGallery,
+          info:    imageInfo
+        },
+
+        video: {
+          load:   videoCreate,
+          create: videoCreate,
+          insert: videoInsert,
+          async play(src, opts) {
+            return videoInsert(src, Object.assign({}, opts, { autoplay: true }));
+          }
+        },
+
+        audio: {
+          play(src, opts) { return MediaManager.playAudio(folder, src, opts); },
+          insert: audioInsert,
+          stopAll() { MediaManager.stopAll(); },
+          pauseAll() { MediaManager.pauseAll(); },
+          setMasterVolume(v) { MediaManager.setMasterVolume(v); }
+        },
+
+        text: {
+          read:  textRead,
+          lines: textLines,
+          json:  textJSON
+        },
+
+        ui: {
+          el,
+          mount(node) { doc.body.appendChild(node); },
+          root()  { return doc.body; },
+          query(sel) { return doc.querySelector(sel); },
+          container(sel) { return resolveContainer(sel, doc); }
+        },
+
+        scroll: scrollAPI,
+
+        storage: {
+          get(k, fallback) {
+            try {
+              const v = localStorage.getItem('vibe.plugin.' + manifest.id + '.' + k);
+              return v == null ? fallback : JSON.parse(v);
+            } catch (e) { return fallback; }
+          },
+          set(k, v) {
+            try { localStorage.setItem('vibe.plugin.' + manifest.id + '.' + k, JSON.stringify(v)); }
+            catch (e) {}
+          },
+          remove(k) {
+            try { localStorage.removeItem('vibe.plugin.' + manifest.id + '.' + k); } catch (e) {}
+          }
+        },
+
+        events: (function () {
+          const handlers = Object.create(null);
+          return {
+            on(name, fn) {
+              (handlers[name] || (handlers[name] = [])).push(fn);
+              return () => {
+                const arr = handlers[name];
+                if (!arr) return;
+                const i = arr.indexOf(fn);
+                if (i >= 0) arr.splice(i, 1);
+              };
+            },
+            off(name, fn) {
+              const arr = handlers[name];
+              if (!arr) return;
+              const i = arr.indexOf(fn);
+              if (i >= 0) arr.splice(i, 1);
+            },
+            emit(name, data) {
+              const arr = handlers[name];
+              if (!arr) return;
+              for (let i = 0; i < arr.length; i++) {
+                try { arr[i](data); } catch (e) { console.error(e); }
+              }
+            }
+          };
+        })(),
+
+        close() {
+          try {
+            iframe.contentWindow.parent.postMessage(
+              { __vibe: true, type: 'close-request', id: manifest.id }, '*'
+            );
+          } catch (e) {}
+        }
+      };
+
+      return api;
+    }
+
+    function buildSrcDoc(manifest) {
+      const baseHref = new URL(PLUGIN_ROOT + encodeURIComponent(manifest._folder) + '/', location.href).href;
+      const entry    = encodeURI(manifest.entry || 'main.js');
+      const styleTag = manifest.style
+        ? '<link rel="stylesheet" href="./' + encodeURI(manifest.style) + '">'
+        : '';
+
+      const allowScroll = !(manifest.window && manifest.window.scroll === false);
+
+      const scrollCSS = allowScroll
+        ? 'html{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;'
+          + 'overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#0A0A0A #F5F5F0}'
+          + '::-webkit-scrollbar{width:12px;height:12px}'
+          + '::-webkit-scrollbar-track{background:#F5F5F0;border-left:2px solid #000}'
+          + '::-webkit-scrollbar-thumb{background:#0A0A0A;border:2px solid #F5F5F0}'
+          + '::-webkit-scrollbar-thumb:hover{background:#FF1493}'
+          + '::-webkit-scrollbar-corner{background:#F5F5F0}'
+        : 'html{overflow:hidden}';
+
+      return '<!DOCTYPE html><html lang="zh-CN"><head>'
+        + '<meta charset="UTF-8">'
+        + '<meta name="viewport" content="width=device-width,initial-scale=1.0">'
+        + '<base href="' + baseHref + '">'
+        + styleTag
+        + '<style>'
+        + 'html,body{margin:0;padding:0;width:100%;height:100%;'
+        + 'font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:transparent;color:#111}'
+        + '*,*::before,*::after{box-sizing:border-box}'
+        + 'body{display:block;overflow:visible}'
+        + scrollCSS
+        + 'img{max-width:100%;height:auto;display:block}'
+        + 'video{max-width:100%;display:block;background:#000}'
+        + 'audio{width:100%;display:block}'
+        + '.vibe-media-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));'
+        + 'gap:8px;padding:8px}'
+        + '.vibe-media-gallery img{width:100%;height:100%;object-fit:cover;border:2px solid #000;'
+        + 'box-shadow:2px 2px 0 #000}'
+        + '.vibe-media-error{padding:10px 14px;border:2px solid #000;background:#FFB6D9;color:#000;'
+        + 'font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;box-shadow:3px 3px 0 #000;'
+        + 'display:inline-flex;flex-direction:column;gap:4px;max-width:100%}'
+        + '.vibe-media-error__badge{font-weight:700;letter-spacing:.05em}'
+        + '.vibe-media-error code{background:#000;color:#FFE135;padding:2px 6px;font-size:11px;'
+        + 'word-break:break-all}'
+        + '</style>'
+        + '</head><body>'
+        + '<script type="module">'
+        + '(async function(){'
+        +   'var PLUGIN_ID=' + JSON.stringify(manifest.id) + ';'
+        +   'function report(type,detail){try{parent.postMessage({__vibe:true,type:type,id:PLUGIN_ID,detail:detail||{}},"*");}catch(e){}}'
+        +   'window.addEventListener("error",function(e){report("error",{message:e.message,stack:e.error&&e.error.stack});});'
+        +   'window.addEventListener("unhandledrejection",function(e){report("error",{message:String(e.reason),stack:e.reason&&e.reason.stack});});'
+        +   'try{'
+        +     'var mod=await import("./' + entry + '");'
+        +     'var run=mod&&(mod.default||mod.run||mod);'
+        +     'if(typeof run!=="function"){throw new Error("插件入口必须 export default function(plugin)");}'
+        +     'parent.postMessage({__vibe:true,type:"host-request",id:PLUGIN_ID},"*");'
+        +     'var host=await new Promise(function(resolve,reject){'
+        +       'var done=false;'
+        +       'function onMsg(e){'
+        +         'if(done)return;'
+        +         'if(e.data&&e.data.__vibe===true&&e.data.type==="host-ready"&&e.data.id===PLUGIN_ID){'
+        +           'done=true;'
+        +           'window.removeEventListener("message",onMsg);'
+        +           'resolve(window.__vibeHost);'
+        +         '}'
+        +       '}'
+        +       'window.addEventListener("message",onMsg);'
+        +       'setTimeout(function(){'
+        +         'if(done)return;'
+        +         'done=true;'
+        +         'window.removeEventListener("message",onMsg);'
+        +         'reject(new Error("宿主未在 5 秒内响应 host-ready"));'
+        +       '},5000);'
+        +     '});'
+        +     'if(!host)throw new Error("宿主 API 未注入");'
+        +     'await run(host);'
+        +     'report("ready");'
+        +   '}catch(err){'
+        +     'report("error",{message:(err&&err.message)?err.message:String(err),stack:err&&err.stack});'
+        +   '}'
+        + '})();'
+        + '<\/script>'
+        + '</body></html>';
+    }
+
+    async function launch(manifest, container, hooks) {
+      hooks = hooks || {};
+      const onProgress = hooks.onProgress || function () {};
+      const onMessage  = hooks.onMessage  || function () {};
+      const onReady    = hooks.onReady    || function () {};
+      const onError    = hooks.onError    || function () {};
+
+      onProgress({ percent: 8, stage: '准备运行环境…' });
+
+      const iframe = document.createElement('iframe');
+      iframe.className = 'plugin-frame';
+      iframe.setAttribute('title', manifest.name);
+      iframe.srcdoc = buildSrcDoc(manifest);
+
+      let settled = false;
+      let readyResolve, readyReject;
+      const readyPromise = new Promise((res, rej) => { readyResolve = res; readyReject = rej; });
+
+      let api = null;
+
+      function handleMessage(e) {
+        if (e.source !== iframe.contentWindow) return;
+        const data = e.data;
+        if (!data || data.__vibe !== true || data.id !== manifest.id) return;
+
+        if (data.type === 'host-request') {
+          try {
+            if (!api) {
+              api = buildHostAPI(manifest, iframe, container);
+            }
+            iframe.contentWindow.__vibeHost = api;
+            iframe.contentWindow.postMessage(
+              { __vibe: true, type: 'host-ready', id: manifest.id },
+              '*'
+            );
+            onProgress({ percent: 60, stage: '注入运行时 API…' });
+          } catch (err) {
+            console.error('[vibe] 构建 host API 失败：', err);
+            if (!settled) {
+              settled = true;
+              onError(err);
+              readyReject(err);
+            }
+          }
+          return;
+        }
+
+        if (data.type === 'ready') {
+          if (settled) return;
+          settled = true;
+          onProgress({ percent: 100, stage: '就绪' });
+          onReady();
+          readyResolve();
+          return;
+        }
+
+        if (data.type === 'error') {
+          const detail = data.detail || {};
+          if (!settled) {
+            settled = true;
+            const err = new Error(detail.message || '插件运行失败');
+            err.stack = detail.stack;
+            onError(err);
+            readyReject(err);
+          } else {
+            console.error('[plugin:' + manifest.id + ']', detail.message, detail.stack);
+            showToast(manifest.name + ' 运行异常', 'error');
+          }
+          return;
+        }
+
+        if (data.type === 'notify') {
+          const d = data.detail || {};
+          showToast(d.message || '', d.level || 'info');
+          return;
+        }
+
+        if (data.type === 'close-request') {
+          hooks.onCloseRequest && hooks.onCloseRequest();
+          return;
+        }
+
+        onMessage(data);
+      }
+      window.addEventListener('message', handleMessage);
+
+      container.appendChild(iframe);
+      onProgress({ percent: 30, stage: '加载插件代码…' });
+
+      function destroy() {
+        window.removeEventListener('message', handleMessage);
+        try { MediaManager.pauseAll(); } catch (e) {}
+        try { iframe.src = 'about:blank'; } catch (e) {}
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      }
+
+      return {
+        manifest,
+        iframe,
+        get api() { return api; },
+        ready: readyPromise,
+        destroy
+      };
+    }
+
+    return { launch };
+  })();
+
+  /* ==========================================================
+     9. PluginManager
+     ========================================================== */
+  const PluginManager = (function () {
+    const manifests = new Map();
+    let current = null;
+    let discoveryPromise = null;
+    let lastDiscoverySource = '';
+    let listeners = [];
+
+    function emit() {
+      const snapshot = list();
+      listeners.forEach(fn => { try { fn(snapshot); } catch (e) {} });
+    }
+    function onChange(fn) {
+      listeners.push(fn);
+      return () => { listeners = listeners.filter(f => f !== fn); };
+    }
+
+    function normalizeWindow(raw) {
+      if (!raw || typeof raw !== 'object') return null;
+      const w = Number(raw.width);
+      const h = Number(raw.height);
+      const out = {};
+      if (isFinite(w) && w > 0) out.width  = w;
+      if (isFinite(h) && h > 0) out.height = h;
+      if ('scroll' in raw) out.scroll = raw.scroll !== false;
+      return Object.keys(out).length ? out : null;
+    }
+
+    function normalizeShortcut(raw) {
+      if (!raw || typeof raw !== 'object') return null;
+      const out = {};
+      if ('enabled' in raw) out.enabled = raw.enabled !== false;
+      if (raw.color) out.color = String(raw.color);
+      if (raw.icon)  out.icon  = String(raw.icon);
+      if (raw.tag)   out.tag   = String(raw.tag);
+      return Object.keys(out).length ? out : null;
+    }
+
+    function normalize(raw, folderHint) {
+      if (!raw || typeof raw !== 'object') return null;
+      const id = String(raw.id || folderHint || '').trim();
+      if (!id) return null;
+      if (!raw.entry) return null;
+      if (!/^[A-Za-z0-9._-]+$/.test(id)) return null;
+      return {
+        id,
+        name:        String(raw.name || id),
+        version:     String(raw.version || '0.0.0'),
+        apiVersion:  String(raw.apiVersion || '1.0'),
+        author:      String(raw.author || '未知'),
+        description: String(raw.description || ''),
+        icon:        raw.icon ? String(raw.icon) : null,
+        entry:       String(raw.entry),
+        style:       raw.style ? String(raw.style) : null,
+        permissions: Array.isArray(raw.permissions) ? raw.permissions.slice() : [],
+        window:      normalizeWindow(raw.window),
+        shortcut:    normalizeShortcut(raw.shortcut),
+        game:        raw.game || null,
+        _folder:     String(folderHint || id),
+        _source:     raw._source || ''
+      };
+    }
+
+    async function discoverFromServer() {
+      const candidates = ['/api/plugins', 'api/plugins'];
+      for (const url of candidates) {
+        try {
+          const data = await fetchJSON(url);
+          if (Array.isArray(data) && data.length) {
+            return { source: 'server', items: data };
+          }
+        } catch (e) {}
+      }
+      return null;
+    }
+
+    async function discoverFromStaticIndex() {
+      let list = null;
+      for (const url of ['installed/index.json', 'installed/plugins.json']) {
+        try { list = await fetchJSON(url); break; }
+        catch (e) {}
+      }
+      if (!Array.isArray(list)) return null;
+
+      if (list.length && typeof list[0] === 'string') {
+        const items = await Promise.all(list.map(async name => {
+          try {
+            const raw = await fetchJSON(
+              PLUGIN_ROOT + encodeURIComponent(name) + '/manifest.json'
+            );
+            return Object.assign({}, raw, { _source: 'static-index' });
+          } catch (e) {
+            console.warn('[vibe] 插件 manifest 加载失败：', name, e);
+            return null;
+          }
+        }));
+        return { source: 'static-index', items: items.filter(Boolean), folderHints: list };
+      }
+
+      if (list.length && typeof list[0] === 'object') {
+        return { source: 'static-index', items: list };
+      }
+      return null;
+    }
+
+    async function discoverFromRegistryCache() {
+      let data = null;
+      try { data = await fetchJSON('registry.json'); }
+      catch (e) { return null; }
+
+      const list = Array.isArray(data)
+        ? data
+        : (data && Array.isArray(data.plugins) ? data.plugins : null);
+      if (!list || !list.length) return null;
+
+      if (typeof list[0] === 'string') {
+        const items = await Promise.all(list.map(async name => {
+          try {
+            const raw = await fetchJSON(
+              PLUGIN_ROOT + encodeURIComponent(name) + '/manifest.json'
+            );
+            return Object.assign({}, raw, { _source: 'registry-cache' });
+          } catch (e) { return null; }
+        }));
+        return { source: 'registry-cache', items: items.filter(Boolean), folderHints: list };
+      }
+      if (typeof list[0] === 'object') {
+        return { source: 'registry-cache', items: list };
+      }
+      return null;
+    }
+
+    async function discover(force) {
+      if (discoveryPromise && !force) return discoveryPromise;
+      discoveryPromise = (async () => {
+        manifests.clear();
+        lastDiscoverySource = '';
+
+        const result =
+             await withTimeout(discoverFromServer(),        DISCOVERY_TIMEOUT, null)
+          || await withTimeout(discoverFromStaticIndex(),   DISCOVERY_TIMEOUT, null)
+          || await withTimeout(discoverFromRegistryCache(), DISCOVERY_TIMEOUT, null);
+
+        if (result) {
+          lastDiscoverySource = result.source;
+          const hints = result.folderHints || [];
+          result.items.forEach((raw, i) => {
+            const hint = hints[i] || raw.id;
+            const m = normalize(raw, hint);
+            if (m) manifests.set(m.id, m);
+            else console.warn('[vibe] 忽略无效 manifest：', raw);
+          });
+        } else {
+          lastDiscoverySource = 'none';
+        }
+
+        try {
+          const valid = new Set(manifests.keys());
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && k.indexOf(SHORTCUT_KEY_PFX) === 0) {
+              const pid = k.slice(SHORTCUT_KEY_PFX.length);
+              if (pid && !valid.has(pid)) localStorage.removeItem(k);
+            }
+          }
+        } catch (e) {}
+
+        emit();
+        return list();
+      })();
+      return discoveryPromise;
+    }
+
+    function list() {
+      return Array.from(manifests.values()).sort((a, b) =>
+        a.name.localeCompare(b.name, 'zh-Hans-CN')
+      );
+    }
+
+    function get(id) { return manifests.get(id) || null; }
+    function getDiscoverySource() { return lastDiscoverySource; }
+
+    async function open(id, opts) {
+      opts = opts || {};
+      const manifest = manifests.get(id);
+      if (!manifest) throw new Error('未找到插件：' + id);
+
+      const [major] = manifest.apiVersion.split('.');
+      const [hostMajor] = API_VERSION.split('.');
+      if (major !== hostMajor) {
+        const err = new Error(
+          '插件需要 API ' + manifest.apiVersion + '，宿主当前为 ' + API_VERSION
+        );
+        err.code = 'API_VERSION_MISMATCH';
+        throw err;
+      }
+
+      await close();
+
+      const container = opts.container;
+      if (!container) throw new Error('缺少容器节点');
+
+      try {
+        const instance = await PluginLoader.launch(manifest, container, {
+          onProgress: opts.onProgress,
+          onMessage:  opts.onMessage,
+          onCloseRequest: () => close()
+        });
+        current = instance;
+        await instance.ready;
+        return instance;
+      } catch (err) {
+        if (current && current.destroy) {
+          try { current.destroy(); } catch (e) {}
+          current = null;
+        }
+        err.code = err.code || 'PLUGIN_LOAD_FAILED';
+        throw err;
+      }
+    }
+
+    async function close() {
+      if (!current) return;
+      try {
+        if (current.api) MediaManager.stopAll();
+      } catch (e) {}
+      try { current.destroy(); } catch (e) {}
+      current = null;
+    }
+
+    return {
+      discover, list, get, open, close,
+      getDiscoverySource,
+      onChange
+    };
+  })();
+
+  /* ==========================================================
+     10. PluginShortcutManager
+     ========================================================== */
+  const SHORTCUT_COLORS = ['yellow', 'pink', 'blue', 'green', 'orange', 'purple'];
+
+  const PluginShortcutManager = {
+    key(id) { return SHORTCUT_KEY_PFX + id; },
+
+    isEnabled(manifest) {
+      if (!manifest) return false;
+      let raw = null;
+      try { raw = localStorage.getItem(this.key(manifest.id)); } catch (e) {}
+      if (raw === null) {
+        return !(manifest.shortcut && manifest.shortcut.enabled === false);
+      }
+      return raw === 'true';
+    },
+
+    setEnabled(id, enabled) {
+      try { localStorage.setItem(this.key(id), enabled ? 'true' : 'false'); }
+      catch (e) {}
+    },
+
+    getColor(manifest, index) {
+      const c = manifest && manifest.shortcut && manifest.shortcut.color;
+      if (c && SHORTCUT_COLORS.indexOf(c) >= 0) return c;
+      return SHORTCUT_COLORS[(index || 0) % SHORTCUT_COLORS.length];
+    },
+
+    iconHTML(manifest) {
+      if (!manifest) return '?';
+      const rel = (manifest.shortcut && manifest.shortcut.icon) || manifest.icon;
+      const letter = escapeHTML((manifest.name || '?').charAt(0).toUpperCase());
+      if (rel) {
+        const url = AssetManager.resolve(manifest._folder, rel);
+        if (url) {
+          return '<img src="' + escapeHTML(url) + '" alt="" '
+            + 'onerror="__vibeIconFallback(this,' + JSON.stringify((manifest.name || '?').charAt(0).toUpperCase()) + ')">';
+        }
+      }
+      return letter;
+    },
+
+    list() {
+      return PluginManager.list().filter(m => this.isEnabled(m));
+    }
+  };
+
+  /* ==========================================================
+     11. ActionGrid
+     ========================================================== */
+  const ActionGrid = (function () {
+    let grid = null;
+    let bound = false;
+
+    const SVG_CENTER =
+      '<svg width="32" height="32" viewBox="0 0 30 30" fill="none">'
+      + '<path d="M17 2L6 18h8l-3 10 11-16h-8l3-10z" fill="#FFE135" stroke="#000" stroke-width="2" stroke-linejoin="round"/>'
+      + '</svg>';
+
+    const SVG_MORE =
+      '<svg width="32" height="32" viewBox="0 0 30 30" fill="none">'
+      + '<rect x="9" y="3" width="12" height="24" fill="#FF1493" stroke="#000" stroke-width="2"/>'
+      + '<rect x="3" y="9" width="24" height="12" fill="#FF1493" stroke="#000" stroke-width="2"/>'
+      + '</svg>';
+
+    function shortcutCardHTML(m, index) {
+      const color = PluginShortcutManager.getColor(m, index);
+      const tag = (m.shortcut && m.shortcut.tag) || 'PLUGIN';
+      return (
+        '<button class="action-card action-card--' + color + ' action-card--plugin" type="button" '
+        + 'data-kind="plugin-shortcut" data-plugin-id="' + escapeHTML(m.id) + '">'
+        +   '<span class="card-shape card-shape--plugin" aria-hidden="true">'
+        +      PluginShortcutManager.iconHTML(m)
+        +   '</span>'
+        +   '<span class="card-tag">' + escapeHTML(tag) + ' · ' + String(index + 1).padStart(2, '0') + '</span>'
+        +   '<span class="card-name">' + escapeHTML((m.name || m.id).toUpperCase()) + '</span>'
+        +   '<span class="card-desc">' + escapeHTML(m.description || '') + '</span>'
+        +   '<span class="card-go">OPEN →</span>'
+        + '</button>'
+      );
+    }
+
+    function centerCardHTML(idx) {
+      return (
+        '<button class="action-card action-card--blue" type="button" data-kind="plugins">'
+        +  '<span class="card-shape" aria-hidden="true">' + SVG_CENTER + '</span>'
+        +  '<span class="card-tag">PLUGINS · ' + String(idx).padStart(2, '0') + '</span>'
+        +  '<span class="card-name">PLUGIN CENTER</span>'
+        +  '<span class="card-desc">浏览全部插件</span>'
+        +  '<span class="card-go">OPEN →</span>'
+        + '</button>'
+      );
+    }
+
+    function moreCardHTML(idx) {
+      return (
+        '<button class="action-card action-card--green" type="button" data-kind="continue">'
+        +  '<span class="card-shape" aria-hidden="true">' + SVG_MORE + '</span>'
+        +  '<span class="card-tag">MORE · ' + String(idx).padStart(2, '0') + '</span>'
+        +  '<span class="card-name">ENTER</span>'
+        +  '<span class="card-desc">更多内容正在路上</span>'
+        +  '<span class="card-go">MORE →</span>'
+        + '</button>'
+      );
+    }
+
+    function bindDelegation() {
+      if (bound || !grid) return;
+      bound = true;
+      grid.addEventListener('click', e => {
+        const card = e.target.closest('.action-card');
+        if (!card) return;
+        const kind = card.dataset.kind;
+        if (kind === 'plugin-shortcut') {
+          const id = card.dataset.pluginId;
+          const m = PluginManager.get(id);
+          if (!m) { showToast('插件已不存在', 'warn'); ActionGrid.render(); return; }
+          pendingShortcutCard = card;
+          PluginPreview.open(m, card);
+        } else if (kind === 'plugins') {
+          openViewer(card, 'plugins');
+        } else if (kind === 'continue') {
+          openContinue();
+        }
+      });
+    }
+
+    function render() {
+      if (!grid) grid = document.getElementById('actionsGrid');
+      if (!grid) return;
+
+      bindDelegation();
+
+      const shortcuts = PluginShortcutManager.list();
+      let html = '';
+      shortcuts.forEach((m, i) => { html += shortcutCardHTML(m, i); });
+      html += centerCardHTML(shortcuts.length + 1);
+      html += moreCardHTML(shortcuts.length + 2);
+
+      grid.innerHTML = html;
+
+      const cards = grid.querySelectorAll('.action-card');
+      cards.forEach((card, i) => {
+        card.style.animationDelay = (0.34 + i * 0.06).toFixed(2) + 's';
+      });
+
+      initTilt();
+    }
+
+    return { render };
+  })();
+
+  /* ==========================================================
+     12. PluginPreview
+     ========================================================== */
+  let pendingShortcutCard = null;
+
+  const PluginPreview = (function () {
+    let modal = null, scrim = null, closeBtn = null, body = null;
+    let lastFocus = null;
+    let currentManifest = null;
+    let ready = false;
+
+    function init() {
+      if (ready) return;
+      modal    = $('#pluginPreview');
+      scrim    = $('#pluginPreviewScrim');
+      closeBtn = $('#pluginPreviewClose');
+      body     = $('#pluginPreviewBody');
+      if (!modal) return;
+      ready = true;
+
+      if (closeBtn) closeBtn.addEventListener('click', close);
+      if (scrim)    scrim.addEventListener('click', close);
+
+      if (body) {
+        body.addEventListener('click', e => {
+          const openBtn = e.target.closest('[data-action="open-plugin"]');
+          if (openBtn && currentManifest) {
+            e.preventDefault();
+            const m = currentManifest;
+            close();
+            setTimeout(() => openPluginFromPreview(m), 260);
+          }
+        });
+      }
+    }
+
+    function renderBody(m) {
+      const icon = PluginShortcutManager.iconHTML(m);
+      const tags = [];
+      if (m.version)    tags.push('<span class="plugin-tag">v' + escapeHTML(m.version) + '</span>');
+      if (m.apiVersion) tags.push('<span class="plugin-tag">api ' + escapeHTML(m.apiVersion) + '</span>');
+      (m.permissions || []).slice(0, 4).forEach(p => {
+        tags.push('<span class="plugin-tag">' + escapeHTML(p) + '</span>');
+      });
+
+      return (
+        '<div class="plugin-preview__head">'
+        +  '<div class="plugin-preview__icon">' + icon + '</div>'
+        +  '<div class="plugin-preview__names">'
+        +    '<div class="plugin-preview__title" id="pluginPreviewTitle">' + escapeHTML(m.name) + '</div>'
+        +    '<div class="plugin-preview__author">' + escapeHTML(m.author || '未知作者') + '</div>'
+        +  '</div>'
+        + '</div>'
+        + (tags.length ? '<div class="plugin-preview__meta">' + tags.join('') + '</div>' : '')
+        + '<div class="plugin-preview__desc">'
+        +   escapeHTML(m.description || '这个插件还没有写简介。')
+        + '</div>'
+        + '<div class="plugin-preview__foot">'
+        +   '<button class="plugin-preview__open" type="button" data-action="open-plugin">打开 →</button>'
+        + '</div>'
+      );
+    }
+
+    function open(manifest, card) {
+      if (!ready) init();
+      if (!modal || !manifest) return;
+      if (modal.classList.contains('is-open')) return;
+
+      if (SettingsUI.isOpen) SettingsUI.close();
+
+      currentManifest = manifest;
+      lastFocus = document.activeElement;
+
+      body.innerHTML = renderBody(manifest);
+
+      modal.inert = false;
+      void modal.offsetWidth;
+      modal.classList.add('is-open');
+      document.body.classList.add('is-viewing');
+      document.body.style.overflow = 'hidden';
+
+      setTimeout(() => {
+        if (!modal.classList.contains('is-open')) return;
+        const b = modal.querySelector('.plugin-preview__open');
+        (b || closeBtn).focus({ preventScroll: true });
+      }, 80);
+    }
+
+    function close() {
+      if (!ready || !modal) return;
+      if (!modal.classList.contains('is-open')) return;
+
+      modal.inert = true;
+      modal.classList.remove('is-open');
+      document.body.classList.remove('is-viewing');
+      document.body.style.overflow = '';
+
+      currentManifest = null;
+      if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+      lastFocus = null;
+    }
+
+    function isOpen() { return !!(modal && modal.classList.contains('is-open')); }
+
+    return { init, open, close, isOpen };
+  })();
+
+  /* ==========================================================
+     13. PluginCenter
+     ========================================================== */
+  const PluginCenter = (function () {
+    let currentMount = null;
+    let onLaunch = null;
+
+    function iconHTML(manifest) {
+      return PluginShortcutManager.iconHTML(manifest);
+    }
+
+    function cardHTML(m) {
+      const tags = [];
+      if (m.version)    tags.push('<span class="plugin-tag">v' + escapeHTML(m.version) + '</span>');
+      if (m.apiVersion) tags.push('<span class="plugin-tag">api ' + escapeHTML(m.apiVersion) + '</span>');
+      (m.permissions || []).slice(0, 3).forEach(p => {
+        tags.push('<span class="plugin-tag">' + escapeHTML(p) + '</span>');
+      });
+      return (
+        '<button class="plugin-card" type="button" data-plugin-id="' + escapeHTML(m.id) + '">'
+        +  '<div class="plugin-card__top">'
+        +    '<div class="plugin-card__icon">' + iconHTML(m) + '</div>'
+        +    '<div class="plugin-card__meta">'
+        +      '<div class="plugin-card__name">' + escapeHTML(m.name) + '</div>'
+        +      '<div class="plugin-card__author">' + escapeHTML(m.author) + '</div>'
+        +    '</div>'
+        +  '</div>'
+        +  '<div class="plugin-card__desc">' + escapeHTML(m.description || '（无描述）') + '</div>'
+        +  (tags.length ? '<div class="plugin-card__tags">' + tags.join('') + '</div>' : '')
+        +  '<div class="plugin-card__foot">'
+        +    '<span class="plugin-card__version">v' + escapeHTML(m.version) + '</span>'
+        +    '<span class="plugin-card__go">RUN →</span>'
+        +  '</div>'
+        + '</button>'
+      );
+    }
+
+    function renderLoading() {
+      if (!currentMount) return;
+      currentMount.innerHTML =
+        '<div class="plugin-state">'
+        +  '<div class="plugin-scan">'
+        +    '<div class="plugin-scan__spinner"></div>'
+        +    '<div class="plugin-state__title">正在扫描插件目录…</div>'
+        +    '<div class="plugin-state__text">读取 <code>installed/*/manifest.json</code></div>'
+        +  '</div>'
+        + '</div>';
+    }
+
+    function renderEmpty() {
+      if (!currentMount) return;
+      currentMount.innerHTML =
+        '<div class="plugin-state">'
+        +  '<div class="plugin-state__title">还没有发现任何插件</div>'
+        +  '<div class="plugin-state__text">'
+        +    '把你的插件文件夹整个放进 <code>installed/</code>，刷新页面即可自动识别。'
+        +    '每个插件目录下需要一个 <code>manifest.json</code>。'
+        +  '</div>'
+        +  '<pre>'
+        + 'installed/\n'
+        + '└── my-plugin/\n'
+        + '    ├── manifest.json\n'
+        + '    ├── main.js\n'
+        + '    └── assets/'
+        +  '</pre>'
+        +  '<button class="pc-btn pc-btn--primary" type="button" data-action="rescan">重新扫描</button>'
+        + '</div>';
+    }
+
+    function renderList() {
+      if (!currentMount) return;
+      const items = PluginManager.list();
+      const source = PluginManager.getDiscoverySource();
+
+      if (!items.length) { renderEmpty(); return; }
+
+      const sourceLabel = {
+        'server':        '来自 /api/plugins',
+        'static-index':  '来自 installed/index.json',
+        'registry-cache':'来自 registry.json（兼容模式）',
+        'none':          '未发现来源'
+      }[source] || '';
+
+      currentMount.innerHTML =
+        '<div class="plugin-center__head">'
+        +  '<div>'
+        +    '<div class="plugin-center__title">插件中心</div>'
+        +    '<div class="plugin-center__sub">' + escapeHTML(sourceLabel) + ' · ' + items.length + ' 个插件</div>'
+        +  '</div>'
+        +  '<div class="plugin-center__actions">'
+        +    '<button class="pc-btn pc-btn--ghost" type="button" data-action="rescan">重新扫描</button>'
+        +  '</div>'
+        + '</div>'
+        + '<div class="plugin-grid">' + items.map(cardHTML).join('') + '</div>';
+    }
+
+    function onMountClick(e) {
+      const rescan = e.target.closest('[data-action="rescan"]');
+      if (rescan) {
+        renderLoading();
+        PluginManager.discover(true)
+          .then(() => renderList())
+          .catch(() => renderEmpty());
+        return;
+      }
+      const card = e.target.closest('[data-plugin-id]');
+      if (card) {
+        const id = card.dataset.pluginId;
+        const manifest = PluginManager.get(id);
+        if (!manifest) return;
+        if (onLaunch) onLaunch(manifest);
+      }
+    }
+
+    function render(host) {
+      host.innerHTML = '';
+      const wrap = document.createElement('div');
+      wrap.className = 'plugin-center';
+      host.appendChild(wrap);
+      currentMount = wrap;
+
+      renderList();
+      currentMount.addEventListener('click', onMountClick);
+
+      if (!PluginManager.list().length) {
+        renderLoading();
+        PluginManager.discover()
+          .then(() => renderList())
+          .catch(err => {
+            console.warn('[vibe] discovery failed:', err);
+            renderEmpty();
+          });
+      }
+    }
+
+    function setLaunchHandler(fn) { onLaunch = fn; }
+
+    return { render, setLaunchHandler };
+  })();
+
+  /* ==========================================================
+     14. PluginAdmin
+     ========================================================== */
+  const PluginAdmin = {
+    async render(host) {
+      host.innerHTML = '<div class="plugin-admin">'
+        + '<div class="plugin-admin__head">'
+        +   '<span class="plugin-admin__title">已发现插件 · 主页面快捷方式</span>'
+        +   '<button class="pc-btn pc-btn--ghost" type="button" data-action="rescan">重新扫描</button>'
+        + '</div>'
+        + '<div data-mount></div>'
+        + '</div>';
+
+      const mount = host.querySelector('[data-mount]');
+
+      host.__renderItems = () => {
+        const items = PluginManager.list();
+        if (!items.length) {
+          mount.innerHTML = '<div class="plugin-admin__empty">暂无插件</div>';
+          return;
+        }
+        mount.innerHTML = items.map(m => {
+          const iconHTML = PluginShortcutManager.iconHTML(m);
+          const checked  = PluginShortcutManager.isEnabled(m);
+          return (
+            '<div class="plugin-admin__row">'
+            +  '<div class="plugin-admin__icon">' + iconHTML + '</div>'
+            +  '<div class="plugin-admin__meta">'
+            +    '<div class="plugin-admin__name">' + escapeHTML(m.name) + '</div>'
+            +    '<div class="plugin-admin__sub">'
+            +      escapeHTML(m.id) + ' · v' + escapeHTML(m.version)
+            +    '</div>'
+            +  '</div>'
+            +  '<label class="plugin-admin__toggle" title="显示在主页快捷方式">'
+            +    '<input class="setting-input" type="checkbox" data-shortcut="' + escapeHTML(m.id) + '"'
+            +      (checked ? ' checked' : '') + '>'
+            +    '<span class="setting-switch"></span>'
+            +  '</label>'
+            + '</div>'
+          );
+        }).join('');
+      };
+
+      if (!PluginManager.list().length) {
+        await PluginManager.discover();
+      }
+      host.__renderItems();
+
+      if (!host.__bound) {
+        host.__bound = true;
+        host.addEventListener('click', async e => {
+          const rescan = e.target.closest('[data-action="rescan"]');
+          if (rescan) {
+            await PluginManager.discover(true);
+            host.__renderItems();
+            ActionGrid.render();
+          }
+        });
+        host.addEventListener('change', e => {
+          const cb = e.target.closest('input[data-shortcut]');
+          if (!cb) return;
+          PluginShortcutManager.setEnabled(cb.dataset.shortcut, cb.checked);
+          ActionGrid.render();
+          showToast(cb.checked ? '已添加到主页快捷方式' : '已从主页移除', 'info');
+        });
+      }
+    }
+  };
+
+  /* ==========================================================
+     15. SettingsUI
+     ========================================================== */
+  const SettingsUI = {
+    panel: null, button: null, isOpen: false, lastFocus: null,
+    init() {
+      this.panel = $('#settingsPanel');
+      this.button = $('#settingsButton');
+      if (!this.panel || !this.button) return;
+
+      this.button.addEventListener('click', () => this.toggle());
+      $('#settingsClose').addEventListener('click', () => this.close());
+      $('#settingsReset').addEventListener('click', () => SettingsManager.reset());
+
+      $$('[data-setting]').forEach(input => {
+        input.addEventListener('change', () => {
+          SettingsManager.set(input.dataset.setting, input.checked);
+        });
+      });
+
+      $$('.settings-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const name = tab.dataset.tab;
+          $$('.settings-tab').forEach(t => t.classList.toggle('is-active', t === tab));
+          $$('.settings-view').forEach(v => v.classList.toggle('is-active', v.dataset.view === name));
+          if (name === 'plugins') this.mountAdmin();
+        });
+      });
+
+      document.addEventListener('pointerdown', e => {
+        if (!this.isOpen) return;
+        if (this.panel.contains(e.target)) return;
+        if (this.button.contains(e.target)) return;
+        this.close();
+      });
+
+      this.sync();
+    },
+    sync() {
+      $$('[data-setting]').forEach(input => {
+        input.checked = !!SETTINGS[input.dataset.setting];
+      });
+    },
+    async mountAdmin() {
+      const mount = $('#pluginAdminMount');
+      if (!mount) return;
+      await PluginAdmin.render(mount);
+    },
+    toggle() { this.isOpen ? this.close() : this.open(); },
+    open() {
+      if (this.isOpen) return;
+      this.isOpen = true;
+      this.lastFocus = document.activeElement;
+      this.panel.inert = false;
+      this.panel.classList.add('is-open');
+      this.panel.setAttribute('aria-hidden', 'false');
+      this.button.setAttribute('aria-expanded', 'true');
+      this.button.classList.add('is-open');
+      setTimeout(() => {
+        if (!this.isOpen) return;
+        const btn = $('#settingsClose');
+        if (btn) btn.focus({ preventScroll: true });
+      }, 60);
+    },
+    close() {
+      if (!this.isOpen) return;
+      this.isOpen = false;
+      this.panel.classList.remove('is-open');
+      this.panel.setAttribute('aria-hidden', 'true');
+      this.button.setAttribute('aria-expanded', 'false');
+      this.button.classList.remove('is-open');
+      setTimeout(() => { if (!this.isOpen) this.panel.inert = true; }, 260);
+      if (this.lastFocus && this.lastFocus.focus) this.lastFocus.focus({ preventScroll: true });
+      this.lastFocus = null;
+    }
+  };
+
+  /* ==========================================================
+     16. Viewer
+     ========================================================== */
+  const CONFIG = {
+    continue: {
+      badge: 'SOON',
+      title: '未完待续',
+      description: '这里的内容还在开发中，敬请期待。',
+      buttons: [
+        { text: '前往制作者B站主页', url: 'https://b23.tv/Em5SYzf',                 target: '_blank' },
+        { text: '前往Github主页',    url: 'https://github.com/AlvinUserSaren',      target: '_blank' },
+        { text: '参考项目',          url: 'https://navigation-webpage.pages.dev/',  target: '_blank' },
+        { text: '查看更新计划',      action: 'open-video' }
+      ]
+    }
+  };
+
+  const viewer     = $('#viewer');
+  const panel      = $('#viewerPanel');
+  const stage      = $('#viewerStage');
+  const closeBtn   = $('#viewerClose');
+  const scrim      = $('#viewerScrim');
+  let isOpen = false, activeCard = null, activeKind = null, lastFocus = null, token = 0;
+  let currentPluginManifest = null;
+
+  const ICON_CLOSE = '✕';
+  const ICON_BACK  =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    + ' stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>';
+
+  let viewerSubMode = 'list';
+  let viewerReturnToCenter = true;
+
+  function setCloseBtnMode(mode) {
+    if (mode === 'back') {
+      closeBtn.setAttribute('aria-label', '返回插件中心');
+      closeBtn.setAttribute('title', '返回插件中心');
+      closeBtn.innerHTML = ICON_BACK;
+      closeBtn.classList.add('is-back');
+    } else {
+      closeBtn.setAttribute('aria-label', '关闭');
+      closeBtn.setAttribute('title', '关闭');
+      closeBtn.innerHTML = ICON_CLOSE;
+      closeBtn.classList.remove('is-back');
+    }
+  }
+
+  function measureCard(card) {
+    if (!card || !card.isConnected) {
+      const w = vw(), h = vh();
+      const size = Math.min(w, h) * 0.22;
+      return {
+        left: Math.round((w - size) / 2),
+        top:  Math.round((h - size) / 2),
+        width: size, height: size
+      };
+    }
+    const savedTransform  = card.style.transform;
+    const savedTransition = card.style.transition;
+    card.__tiltLock = true;
+    card.style.transition = 'none';
+    card.style.transform  = 'none';
+    const rect = card.getBoundingClientRect();
+    card.style.transform  = savedTransform;
+    card.style.transition = savedTransition;
+    card.__tiltLock = false;
+    return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+  }
+  function getCardBg(card) {
+    if (!card || !card.isConnected) return '#F5F5F0';
+    return getComputedStyle(card).backgroundColor;
+  }
+
+  function getViewerTarget() {
+    const w = vw(), h = vh();
+    const fab = MUSIC_FAB.rect();
+    const GAP = MUSIC_FAB.gap;
+
+    if (!isDesktop()) {
+      const top = fab.bottom + GAP;
+      return { left: 0, top, width: w, height: Math.max(200, h - top) };
+    }
+
+    const maxW = Math.min(1400, w * 0.92);
+    const maxH = Math.min(900,  h * 0.88);
+
+    let left   = Math.round((w - maxW) / 2);
+    let top    = Math.round((h - maxH) / 2);
+    let width  = Math.round(maxW);
+    let height = Math.round(maxH);
+
+    if (left < fab.right + GAP && top < fab.bottom + GAP) {
+      const newTop = fab.bottom + GAP;
+      top = newTop;
+      height = Math.min(height, Math.max(200, h - newTop - 16));
+    }
+
+    return { left, top, width, height };
+  }
+
+  function getPluginTarget(manifest) {
+    const w = vw(), h = vh();
+    const fab = MUSIC_FAB.rect();
+    const GAP = MUSIC_FAB.gap;
+
+    const win = (manifest && manifest.window) || {};
+    const wantW = Number(win.width)  || 900;
+    const wantH = Number(win.height) || 650;
+
+    const desktop = isDesktop();
+    const maxW = Math.floor(w * (desktop ? 0.94 : 0.98));
+    const maxH = Math.floor(h * (desktop ? 0.9  : 0.94));
+    const minW = Math.min(320, maxW);
+    const minH = Math.min(280, maxH);
+
+    let width  = Math.max(minW, Math.min(wantW, maxW));
+    let height = Math.max(minH, Math.min(wantH, maxH));
+
+    let left = Math.round((w - width) / 2);
+    let top  = Math.round((h - height) / 2);
+
+    if (left < fab.right + GAP && top < fab.bottom + GAP) {
+      const newTop = fab.bottom + GAP;
+      top = newTop;
+      height = Math.min(height, Math.max(200, h - newTop - 16));
+    }
+
+    return { left, top, width: Math.round(width), height: Math.round(height) };
+  }
+
+  function setPanelRect(l, t, w, h) {
+    panel.style.left = l + 'px'; panel.style.top = t + 'px';
+    panel.style.width = w + 'px'; panel.style.height = h + 'px';
+  }
+  function setPanelRectInstant(l, t, w, h) {
+    const saved = panel.style.transition;
+    panel.style.transition = 'none';
+    panel.style.left = l + 'px'; panel.style.top = t + 'px';
+    panel.style.width = w + 'px'; panel.style.height = h + 'px';
+    void panel.offsetWidth;
+    panel.style.transition = saved;
+  }
+  function setPanelRectWithShortTransition(l, t, w, h) {
+    const EASE = 'cubic-bezier(.16,1,.3,1)';
+    const T = '.32s ' + EASE;
+    panel.style.transition =
+      'left ' + T + ', top ' + T + ', width ' + T + ', height ' + T;
+    panel.style.left = l + 'px'; panel.style.top = t + 'px';
+    panel.style.width = w + 'px'; panel.style.height = h + 'px';
+    clearTimeout(panel.__shortTimer);
+    panel.__shortTimer = setTimeout(() => { panel.style.transition = ''; }, 360);
+  }
+
+  function openViewer(card, kind, opts) {
+    opts = opts || {};
+    if (isOpen) return;
+    isOpen = true;
+    viewerSubMode = 'list';
+    viewerReturnToCenter = true;
+    setCloseBtnMode('close');
+
+    const myToken = ++token;
+    activeCard = card || null;
+    activeKind = kind;
+    lastFocus = document.activeElement;
+
+    if (SettingsUI.isOpen) SettingsUI.close();
+
+    const rect = measureCard(card);
+    const bg = getCardBg(card);
+
+    stage.className = 'viewer-stage';
+    stage.innerHTML = '';
+
+    if (card && card.isConnected) {
+      card.style.transform = '';
+      card.classList.add('is-viewing-source');
+    }
+
+    panel.style.transition = 'none';
+    panel.style.backgroundColor = bg;
+    setPanelRect(rect.left, rect.top, rect.width, rect.height);
+    void panel.offsetWidth;
+    panel.style.transition = '';
+
+    viewer.style.visibility = 'visible';
+    viewer.inert = false;
+    viewer.classList.add('is-active');
+    document.body.classList.add('is-viewing');
+    document.body.style.overflow = 'hidden';
+
+    closeBtn.focus({ preventScroll: true });
+
+    if (kind === 'plugins') {
+      stage.classList.add('is-plugin');
+
+      const directPlugin = opts.directPlugin || null;
+      const target = directPlugin ? getPluginTarget(directPlugin) : getViewerTarget();
+
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (myToken !== token) return;
+        setPanelRect(target.left, target.top, target.width, target.height);
+        panel.style.backgroundColor = '';
+        stage.classList.add('is-visible');
+        closeBtn.classList.add('is-visible');
+      }));
+
+      if (directPlugin) {
+        setTimeout(() => {
+          if (myToken !== token) return;
+          launchPlugin(directPlugin, stage, myToken, false);
+        }, 260);
+      } else {
+        PluginCenter.setLaunchHandler(manifest => launchPlugin(manifest, stage, myToken, true));
+        PluginCenter.render(stage);
+      }
+    }
+  }
+
+  async function launchPlugin(manifest, container, myToken, returnToCenter) {
+    viewerSubMode = 'plugin';
+    viewerReturnToCenter = returnToCenter !== false;
+    currentPluginManifest = manifest;
+    setCloseBtnMode(viewerReturnToCenter ? 'back' : 'close');
+
+    const t = getPluginTarget(manifest);
+    setPanelRect(t.left, t.top, t.width, t.height);
+
+    container.innerHTML = '';
+    const loading = document.createElement('div');
+    loading.className = 'plugin-loading';
+    loading.innerHTML =
+      '<div class="plugin-loading__name">' + escapeHTML(manifest.name) + '</div>'
+      + '<div class="plugin-loading__stage">初始化…</div>'
+      + '<div class="plugin-loading__bar"><div class="plugin-loading__fill"></div></div>'
+      + '<div class="plugin-loading__pct">0%</div>';
+    container.appendChild(loading);
+
+    const stageEl = loading.querySelector('.plugin-loading__stage');
+    const fill    = loading.querySelector('.plugin-loading__fill');
+    const pct     = loading.querySelector('.plugin-loading__pct');
+
+    try {
+      const instance = await PluginManager.open(manifest.id, {
+        container,
+        onProgress({ percent, stage: stageText }) {
+          fill.style.width = percent + '%';
+          pct.textContent = Math.round(percent) + '%';
+          if (stageText) stageEl.textContent = stageText;
+        },
+        onMessage(msg) {
+          if (msg.type === 'notify' && msg.detail) {
+            showToast(msg.detail.message, msg.detail.level);
+          }
+        }
+      });
+
+      if (myToken !== token) { PluginManager.close(); return; }
+
+      const el = container.querySelector('.plugin-loading');
+      if (el) el.remove();
+
+      if (instance && instance.iframe) {
+        instance.iframe.style.width = '100%';
+        instance.iframe.style.height = '100%';
+      }
+    } catch (err) {
+      console.error('[vibe] plugin launch failed:', err);
+      if (myToken !== token) return;
+      viewerSubMode = 'list';
+      viewerReturnToCenter = true;
+      setCloseBtnMode('close');
+      loading.innerHTML =
+        '<div class="plugin-fail">'
+        + '<div class="plugin-fail__badge">插件加载失败</div>'
+        + '<h3>' + escapeHTML(err.message || '未知错误') + '</h3>'
+        + '<dl>'
+        +   '<dt>CODE</dt><dd><code>' + escapeHTML(err.code || 'PLUGIN_LOAD_FAILED') + '</code></dd>'
+        +   '<dt>PLUGIN</dt><dd>' + escapeHTML(manifest.id) + '</dd>'
+        + '</dl>'
+        + '<button class="plugin-fail__btn" type="button">关闭</button>'
+        + '</div>';
+      const btn = loading.querySelector('.plugin-fail__btn');
+      if (btn) btn.addEventListener('click', () => {
+        if (viewerReturnToCenter) returnToPluginCenter();
+        else closeViewer();
+      });
+    }
+  }
+
+  function openPluginFromPreview(manifest) {
+    if (!manifest) return;
+    if (isOpen) { closeViewer(); }
+    const card = (pendingShortcutCard && pendingShortcutCard.isConnected)
+      ? pendingShortcutCard : null;
+    pendingShortcutCard = null;
+    setTimeout(() => {
+      openViewer(card, 'plugins', { directPlugin: manifest });
+    }, 40);
+  }
+
+  async function returnToPluginCenter() {
+    if (viewerSubMode !== 'plugin') return;
+    viewerSubMode = 'list';
+    viewerReturnToCenter = true;
+    currentPluginManifest = null;
+    setCloseBtnMode('close');
+
+    try { await PluginManager.close(); } catch (e) {}
+
+    const t = getViewerTarget();
+    setPanelRect(t.left, t.top, t.width, t.height);
+
+    stage.className = 'viewer-stage is-plugin';
+    stage.innerHTML = '';
+
+    PluginCenter.setLaunchHandler(manifest => launchPlugin(manifest, stage, token, true));
+    PluginCenter.render(stage);
+
+    requestAnimationFrame(() => stage.classList.add('is-visible'));
+    closeBtn.classList.add('is-visible');
+  }
+
+  function onCloseClick() {
+    if (viewerSubMode === 'plugin' && viewerReturnToCenter) {
+      returnToPluginCenter();
+    } else {
+      closeViewer();
+    }
+  }
+
+  function closeViewer() {
+    if (!isOpen) return;
+    isOpen = false;
+    viewerSubMode = 'list';
+    viewerReturnToCenter = true;
+    currentPluginManifest = null;
+    const myToken = ++token;
+
+    stage.classList.remove('is-visible');
+    closeBtn.classList.remove('is-visible');
+    document.body.classList.remove('is-viewing');
+    document.body.style.overflow = '';
+    void document.body.offsetHeight;
+    viewer.classList.remove('is-active');
+
+    if (!activeCard || !activeCard.isConnected) {
+      finalizeClose(myToken);
+      return;
+    }
+
+    const rect = measureCard(activeCard);
+    const bg = getCardBg(activeCard);
+    panel.style.backgroundColor = bg;
+    setPanelRect(rect.left, rect.top, rect.width, rect.height);
+
+    let finished = false, timer = null;
+    function onEnd(e) {
+      if (finished) return;
+      if (e.target !== panel) return;
+      if (e.propertyName !== 'width' && e.propertyName !== 'height') return;
+      finished = true;
+      panel.removeEventListener('transitionend', onEnd);
+      clearTimeout(timer);
+      finalizeClose(myToken);
+    }
+    panel.addEventListener('transitionend', onEnd);
+    timer = setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      panel.removeEventListener('transitionend', onEnd);
+      finalizeClose(myToken);
+    }, CLOSE_DURATION + 140);
+  }
+
+  function finalizeClose(myToken) {
+    if (myToken !== token) return;
+    if (activeKind === 'plugins') {
+      PluginManager.close();
+    }
+    stage.innerHTML = '';
+    stage.className = 'viewer-stage';
+    viewer.style.visibility = 'hidden';
+    viewer.inert = true;
+    panel.style.backgroundColor = '';
+    if (activeCard && activeCard.isConnected) {
+      activeCard.classList.remove('is-viewing-source');
+      activeCard.style.transform = '';
+    }
+    activeCard = null; activeKind = null;
+    if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+    lastFocus = null;
+  }
+
+  closeBtn.addEventListener('click', onCloseClick);
+  scrim.addEventListener('click', () => {
+    if (viewerSubMode === 'plugin' && viewerReturnToCenter) returnToPluginCenter();
+    else closeViewer();
+  });
+
+  let viewerResizeRaf = 0, viewerResizeTimer = 0;
+  function applyViewerRectInstant() {
+    if (!isOpen) return;
+    let t = null;
+    if (activeKind === 'plugins' && viewerSubMode === 'plugin' && currentPluginManifest) {
+      t = getPluginTarget(currentPluginManifest);
+    }
+    if (!t) t = getViewerTarget();
+    setPanelRectInstant(t.left, t.top, t.width, t.height);
+  }
+  window.addEventListener('resize', () => {
+    if (!isOpen) return;
+    if (viewerResizeRaf) cancelAnimationFrame(viewerResizeRaf);
+    viewerResizeRaf = requestAnimationFrame(() => {
+      viewerResizeRaf = 0;
+      applyViewerRectInstant();
+    });
+    clearTimeout(viewerResizeTimer);
+    viewerResizeTimer = setTimeout(applyViewerRectInstant, 140);
+  });
+
+  /* ==========================================================
+     17. Continue Modal
+     ========================================================== */
+  const continueModal  = $('#continueModal');
+  const continueScrim  = $('#continueScrim');
+  const continueBody   = $('#continueBody');
+  let continueLastFocus = null;
+
+  function escAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function renderContinueBody() {
+    const c = CONFIG.continue || {};
+    const buttons = Array.isArray(c.buttons) ? c.buttons : [];
+    const btnsHTML = buttons.map((b, i) => {
+      const cls = 'continue-btn' + (i > 0 ? ' continue-btn--secondary' : '');
+
+      if (b.action) {
+        return '<button class="' + cls + '" type="button" data-action="' + escAttr(b.action) + '">'
+             + escAttr(b.text) + ' →</button>';
+      }
+
+      const t = b.target || '_blank';
+      const rel = t === '_blank' ? ' rel="noopener noreferrer"' : '';
+      return '<a class="' + cls + '" href="' + escAttr(b.url) + '" target="' + escAttr(t) + '"' + rel + '>'
+           + escAttr(b.text) + ' →</a>';
+    }).join('');
+
+    return (
+      (c.badge ? '<div class="continue-badge">' + escAttr(c.badge) + '</div>' : '')
+      + '<h2 class="continue-title">' + escAttr(c.title || '未完待续') + '</h2>'
+      + '<p class="continue-desc">' + escAttr(c.description || '') + '</p>'
+      + (btnsHTML ? '<div class="continue-buttons">' + btnsHTML + '</div>' : '')
+    );
+  }
+  function openContinue() {
+    if (continueModal.classList.contains('is-open')) return;
+    continueLastFocus = document.activeElement;
+    if (SettingsUI.isOpen) SettingsUI.close();
+    continueBody.innerHTML = renderContinueBody();
+    continueModal.inert = false;
+    void continueModal.offsetWidth;
+    continueModal.classList.add('is-open');
+    document.body.classList.add('is-viewing');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => {
+      if (!continueModal.classList.contains('is-open')) return;
+      const btn = $('#continueClose');
+      if (btn) btn.focus({ preventScroll: true });
+    }, 80);
+  }
+  function closeContinue() {
+    if (!continueModal.classList.contains('is-open')) return;
+    if (VideoModal.isOpen()) VideoModal.close();
+
+    continueModal.classList.remove('is-open');
+    continueModal.inert = true;
+    document.body.classList.remove('is-viewing');
+    document.body.style.overflow = '';
+    if (continueLastFocus && continueLastFocus.focus) continueLastFocus.focus({ preventScroll: true });
+    continueLastFocus = null;
+  }
+  continueScrim.addEventListener('click', closeContinue);
+  $('#continueClose').addEventListener('click', closeContinue);
+
+  continueBody.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'open-video') {
+      e.preventDefault();
+      VideoModal.open();
+    }
+  });
+
+  /* ==========================================================
+     17.5 Video Modal（查看更新计划 · 全屏视频）
+     ------------------------------------------------------------
+     修复要点：
+       · src / track 路径都写在 HTML 里，不用 JS 二次编码
+       · 视频加载失败时在屏幕上显示具体错误（含错误码 + src）
+       · 关闭时暂停并清空 src，释放资源
+     ========================================================== */
+  const VideoModal = (function () {
+    let modal = null, player = null, closeBtn = null, scrim = null, errBox = null;
+    let lastFocus = null;
+    let ready = false;
+    let errorTimer = 0;
+
+    const ERR_TEXT = {
+      1: '视频加载被中止（MEDIA_ERR_ABORTED）',
+      2: '网络错误，无法下载视频（MEDIA_ERR_NETWORK）—— 检查路径与服务器',
+      3: '视频解码失败（MEDIA_ERR_DECODE）—— 浏览器可能不支持该编码',
+      4: '视频格式不受支持或文件不存在（MEDIA_ERR_SRC_NOT_SUPPORTED）'
+    };
+
+    function init() {
+      if (ready) return;
+      modal = $('#videoModal');
+      if (!modal) return;
+      ready = true;
+
+      player   = $('#videoModalPlayer');
+      closeBtn = $('#videoModalClose');
+      scrim    = $('#videoModalScrim');
+      errBox   = $('#videoModalError');
+
+      if (closeBtn) closeBtn.addEventListener('click', close);
+      if (scrim)    scrim.addEventListener('click', close);
+
+      if (player) {
+        player.addEventListener('loadedmetadata', onLoadedMetadata);
+        player.addEventListener('error', onVideoError);
+        player.addEventListener('stalled', () => {
+          console.warn('[VideoModal] 视频加载停滞：', player.currentSrc || player.src);
+        });
+        if (player.textTracks && player.textTracks.addEventListener) {
+          player.textTracks.addEventListener('addtrack', enableSubtitle);
+        }
+      }
+    }
+
+    function onLoadedMetadata() {
+      hideError();
+      enableSubtitle();
+      console.log('[VideoModal] 元数据已加载：', player.currentSrc || player.src,
+                  player.videoWidth + '×' + player.videoHeight);
+    }
+
+    function onVideoError() {
+      if (!player) return;
+      const code = player.error ? player.error.code : 0;
+      const src  = player.currentSrc || player.src || '(未设置)';
+      const msg  = ERR_TEXT[code] || ('视频加载失败：code ' + code);
+      showError(msg, src);
+      console.error('[VideoModal]', msg, player.error, src);
+    }
+
+    function showError(msg, src) {
+      if (!errBox) return;
+      errBox.innerHTML =
+        '<strong>⚠ 无法播放视频</strong>'
+        + escAttr(msg) + '<br>'
+        + '<code>' + escAttr(src) + '</code>';
+      errBox.classList.add('is-visible');
+      clearTimeout(errorTimer);
+      errorTimer = setTimeout(hideError, 8000);
+    }
+
+    function hideError() {
+      if (!errBox) return;
+      errBox.classList.remove('is-visible');
+      errBox.innerHTML = '';
+    }
+
+    function escAttr(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function enableSubtitle() {
+      if (!player || !player.textTracks) return;
+      const tracks = player.textTracks;
+      for (let i = 0; i < tracks.length; i++) {
+        const t = tracks[i];
+        if (t.kind === 'subtitles' || t.kind === 'captions') {
+          try { t.mode = 'showing'; } catch (e) {}
+          return;
+        }
+      }
+    }
+
+    function open() {
+      if (!ready) init();
+      if (!modal) return;
+      if (modal.classList.contains('is-open')) return;
+
+      lastFocus = document.activeElement;
+      hideError();
+
+      modal.inert = false;
+      void modal.offsetWidth;
+      modal.classList.add('is-open');
+      document.body.classList.add('is-viewing');
+      document.body.style.overflow = 'hidden';
+
+      setTimeout(() => {
+        if (!modal.classList.contains('is-open')) return;
+        if (closeBtn) closeBtn.focus({ preventScroll: true });
+      }, 80);
+
+      if (player) {
+        try { player.currentTime = 0; } catch (e) {}
+        const p = player.play();
+        if (p && typeof p.catch === 'function') {
+          p.catch(err => {
+            console.warn('[VideoModal] 自动播放被拒绝（用户可手动点击播放）：', err && err.message);
+          });
+        }
+      }
+    }
+
+    function close() {
+      if (!ready || !modal) return;
+      if (!modal.classList.contains('is-open')) return;
+
+      modal.classList.remove('is-open');
+      modal.inert = true;
+
+      if (player) { try { player.pause(); } catch (e) {} }
+
+      const stillViewing =
+        (continueModal && continueModal.classList.contains('is-open')) ||
+        (typeof PluginPreview !== 'undefined' && PluginPreview.isOpen());
+      if (!stillViewing) {
+        document.body.classList.remove('is-viewing');
+        document.body.style.overflow = '';
+      }
+
+      hideError();
+
+      if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+      lastFocus = null;
+    }
+
+    function isOpen() { return !!(modal && modal.classList.contains('is-open')); }
+
+    return { init, open, close, isOpen };
+  })();
+
+  /* ==========================================================
+     18. 键盘
+     ========================================================== */
+  window.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (document.fullscreenElement || document.webkitFullscreenElement) return;
+
+    if (VideoModal.isOpen()) VideoModal.close();
+    else if (SettingsUI.isOpen) SettingsUI.close();
+    else if (PluginPreview.isOpen()) PluginPreview.close();
+    else if (continueModal.classList.contains('is-open')) closeContinue();
+    else if (isOpen) {
+      if (viewerSubMode === 'plugin' && viewerReturnToCenter) returnToPluginCenter();
+      else closeViewer();
+    }
+  });
+
+  /* ==========================================================
+     19. 卡片 3D 倾斜
+     ========================================================== */
+  function initTilt() {
+    if (prefersReduced || !isFinePointer) return;
+    if (!window.matchMedia('(min-width: 1101px)').matches) return;
+    const MAX = 5, LIFT = -3;
+    $$('.action-card').forEach(card => {
+      if (card.__tiltBound) return;
+      card.__tiltBound = true;
+      card.style.transformStyle = 'preserve-3d';
+      let raf = 0, pending = null;
+      function apply() {
+        raf = 0;
+        if (!pending) return;
+        if (card.__tiltLock) { pending = null; return; }
+        const { rx, ry } = pending; pending = null;
+        card.style.transform =
+          'perspective(900px) rotateX(' + rx.toFixed(2) + 'deg) '
+          + 'rotateY(' + ry.toFixed(2) + 'deg) translateY(' + LIFT + 'px)';
+      }
+      card.addEventListener('pointerenter', e => {
+        if (e.pointerType !== 'mouse') return;
+        if (!SETTINGS.cardMotion) return;
+        card.style.transition = 'transform .12s ease-out, box-shadow .18s ease';
+      });
+      card.addEventListener('pointermove', e => {
+        if (e.pointerType !== 'mouse') return;
+        if (!SETTINGS.cardMotion) return;
+        if (card.__tiltLock) return;
+        if (card.classList.contains('is-viewing-source')) return;
+        const rect = card.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = (e.clientY - rect.top)  / rect.height;
+        pending = { rx: (y - 0.5) * -MAX * 2, ry: (x - 0.5) * MAX * 2 };
+        if (!raf) raf = requestAnimationFrame(apply);
+      });
+      card.addEventListener('pointerleave', () => {
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        pending = null;
+        card.style.transition = 'transform .35s cubic-bezier(.16,1,.3,1), box-shadow .2s ease';
+        card.style.transform = '';
+      });
+    });
+  }
+
+  /* ==========================================================
+     20. 启动
+     ========================================================== */
+  SettingsManager.load();
+  SettingsUI.init();
+  EffectsManager.applyAll();
+
+  MusicPlayer.init(document);
+  VideoModal.init();
+
+  ActionGrid.render();
+
+  PluginManager.onChange(() => ActionGrid.render());
+
+  const warmup = () => { PluginManager.discover().catch(() => {}); };
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(warmup, { timeout: 2500 });
+  } else {
+    setTimeout(warmup, 600);
+  }
+
+  window.VibeRuntime = {
+    PluginManager, PluginShortcutManager, AssetManager, MediaManager,
+    MusicPlayer, ActionGrid, PluginPreview, VideoModal,
+    API_VERSION
+  };
+
+})();
+</script>
+</body>
+</html>
